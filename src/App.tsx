@@ -1,20 +1,30 @@
-import { Button } from "@/components/ui/button"
+
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/home';
+import Profile from './pages/profile';
+import Cart from './pages/cart'
+import Admin from "./Admin/admin";
+import Login from './Auth/login'
+import Signup from './Auth/signup'
+import ProtectedRoute from './components/protectedRoute'
 
 export function App() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
+    <>
+      <BrowserRouter>
+        <Routes>
+          
+            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/Profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/Cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+            <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            
+            <Route path="/Login" element={<Login />} />
+            <Route path="/Signup" element={<Signup />} />
+          
+        </Routes>
+      </BrowserRouter>
+    </>
   )
 }
 
