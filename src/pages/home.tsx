@@ -1,15 +1,23 @@
 
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
-import {db} from '../firebase/fb'
+import { db, auth } from '../firebase/fb'
 import ProductCard from "./ProductHomeList";
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { signOut } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
 
 function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleSignout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("token");
+    navigate("/Login");
+  };
 
   const getProducts = async () => {
     try {
@@ -62,6 +70,10 @@ function Products() {
                   <Link to="/Cart">
                     Cart
                   </Link>
+                </Button>
+
+                <Button variant="destructive" onClick={handleSignout}>
+                  Sign out
                 </Button>
               </div>
     
