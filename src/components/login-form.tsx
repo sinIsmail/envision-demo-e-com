@@ -23,6 +23,18 @@ import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
 import { useNavigate } from "react-router-dom"
 import { toast } from "./ui/toast"
 
+function getAuthError(code: string): string {
+  const map: Record<string, string> = {
+    "auth/invalid-credential": "Invalid email or password.",
+    "auth/user-not-found": "No account found with this email.",
+    "auth/wrong-password": "Incorrect password.",
+    "auth/too-many-requests": "Too many attempts. Please try again later.",
+    "auth/network-request-failed": "Network error. Check your connection.",
+    "auth/popup-closed-by-user": "Sign-in popup was closed.",
+  };
+  return map[code] ?? `Error: ${code}`;
+}
+
 export function LoginForm({
   className,
   ...props
@@ -31,44 +43,45 @@ export function LoginForm({
   const [form, setform] = useState({
     email: "",
     password: ""
-  }
-  );
-  const loginproviderhandler = async ()=>{
+  });
+
+  const loginproviderhandler = async () => {
     try {
       let res = await signInWithPopup(auth, provider);
-       if (res.user) {
-                localStorage.setItem("token", "user-ummmm");
-                navigate("/");
-                toast.add({
-                    title: "Welcum!, again",
-                    description: "ohh, look whos there"
-                });}
-    } catch (err) {
-      console.log(err);
-            toast.add({
-                title: "Account alreday exist",
-                description: "You should stop messing around"
-            });
+      if (res.user) {
+        localStorage.setItem("token", "user-token");
+        navigate("/");
+        toast.add({
+          title: "Welcome back!",
+          description: "Signed in with Google."
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.add({
+        title: "Google sign-in failed",
+        description: getAuthError(err.code),
+      });
     }
   }
-  const loginformHandler = async (e:any)=>{
+
+  const loginformHandler = async (e: any) => {
     try {
       e.preventDefault();
       let res = await signInWithEmailAndPassword(auth, form.email, form.password);
-      console.log("successfull")
-      if(res.user){
+      if (res.user) {
         localStorage.setItem("token", "some-token");
         navigate("/")
       }
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.error(error);
       toast.add({
-        title:"Oops something went wrong",
-        description:"just buzz off!"
+        title: "Login failed",
+        description: getAuthError(error.code),
       })
     }
-      
   }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>

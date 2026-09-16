@@ -16,10 +16,13 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
+  addDoc,
   doc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 import { db, auth } from "../firebase/fb";
+import { toast } from "@/components/ui/toast";
 
 import {
   Trash2,
@@ -196,13 +199,41 @@ function Cart() {
       );
     }
   };
-  const checkout = ()=>{
-    const userid = auth.currentUser?.uid;
-    if(!userid){
-      return;
+  const checkout = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      // Write order to Firestore
+      await addDoc(collection(db, "orders"), {
+        userId: user.uid,
+        userEmail: user.email ?? "",
+        userName: user.displayName ?? "",
+        items: cartData.map((item) => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+        subtotal,
+        shipping,
+        total,
+        createdAt: serverTimestamp(),
+      });
+
+      // Clear cart in Firestore
+      const cartRef = collection(db, "cart", user.uid, "items");
+      const snap = await getDocs(cartRef);
+      await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+
+      setCartData([]);
+      toast.add({ title: "Order placed!", description: "Your order has been placed successfully." });
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.add({ title: "Checkout failed", description: "Something went wrong. Please try again." });
     }
-    
-  }
+  };
+
 
   // -----------------------------
   // LOAD CART
