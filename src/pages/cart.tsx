@@ -201,7 +201,7 @@ function Cart() {
     if(!userid){
       return;
     }
-    const res = collection(db, 'products', userid );
+    
   }
 
   // -----------------------------
