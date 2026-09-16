@@ -65,14 +65,15 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             let res = await signInWithPopup(auth, provider);
             console.log(res);
             if (res.user) {
-                navigate("/Home");
+                localStorage.setItem("token", "user-token");
+                navigate("/");
                 toast.add({
                     title: "Welcum!",
                     description: "Thank you for siging in"
                 });
             }
         } catch (error) {
-            console.log(err);
+            console.log(error);
             toast.add({
                 title: "Account alreday exist",
                 description: "You should stop messing around"
