@@ -9,7 +9,6 @@ import { Toaster } from "./components/ui/toast.tsx"
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
-      
       <App />
       <Toaster/>
     </ThemeProvider>
