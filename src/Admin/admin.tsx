@@ -207,14 +207,20 @@ function ProductsTab() {
 function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const snap = await getDocs(collection(db, "users"));
         setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
+        if (err.code === "permission-denied") {
+          setError("permission-denied");
+        } else {
+          setError("unknown");
+        }
       } finally {
         setLoading(false);
       }
@@ -222,13 +228,41 @@ function UsersTab() {
     fetchUsers();
   }, []);
 
-  if (loading) return <p className="text-muted-foreground p-4">Loading users...</p>;
+  if (loading) return (
+    <div className="flex justify-center p-8">
+      <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  );
+
+  if (error === "permission-denied") {
+    return (
+      <Card className="shadow-md">
+        <CardContent className="py-10 text-center space-y-3">
+          <p className="text-lg font-semibold text-destructive">⚠ Permission Denied</p>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Firestore rules are blocking this read. Go to{" "}
+            <strong>Firebase Console → Firestore → Rules</strong> and set:
+          </p>
+          <pre className="mx-auto max-w-md rounded-md bg-muted p-3 text-left text-xs text-muted-foreground whitespace-pre-wrap">
+{`match /users/{userId} {
+  allow read: if request.auth != null;
+  allow write: if request.auth != null
+    && request.auth.uid == userId;
+}`}
+          </pre>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="shadow-md">
       <CardHeader>
         <CardTitle className="text-2xl font-bold">Registered Users</CardTitle>
-        <CardDescription>{users.length} user(s) total</CardDescription>
+        <CardDescription>
+          {users.length} user(s) total
+          {users.length === 0 && " — Users appear here when they sign up or log in."}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -243,7 +277,9 @@ function UsersTab() {
             </thead>
             <tbody>
               {users.length === 0 && (
-                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No users yet.</td></tr>
+                <tr><td colSpan={4} className="py-10 text-center text-muted-foreground">
+                  No users yet. Users are saved automatically when they sign up or log in.
+                </td></tr>
               )}
               {users.map((u, i) => (
                 <tr key={u.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
@@ -267,6 +303,7 @@ function UsersTab() {
 
 // =============================================
 // TAB 3 — ORDERS
+
 // =============================================
 type DateFilter = "today" | "7days" | "all";
 
