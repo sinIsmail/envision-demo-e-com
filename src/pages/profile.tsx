@@ -238,7 +238,7 @@ function Profile() {
             {/* TABS */}
             <Tabs defaultValue="orders" className="w-full">
 
-              <TabsList className="grid w-full grid-cols-2 sm:w-[400px]">
+              <TabsList className="grid w-full grid-cols-2 ">
                 <TabsTrigger value="orders">
                   Orders
                 </TabsTrigger>

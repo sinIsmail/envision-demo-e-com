@@ -15,11 +15,7 @@ import ProtectedRoute from "./components/protectedRoute"
 export function App() {
   return (
     <BrowserRouter
-      basename={
-        import.meta.env.PROD
-          ? "/envision-demo-com"
-          : "/"
-      }
+      basename={"/"}
     >
       <Routes>
 
