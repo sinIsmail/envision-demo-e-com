@@ -3,8 +3,11 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
-export default defineConfig({
-  base: "/envision-demo-com/",
+export default defineConfig(({ mode }) => ({
+  base:
+    mode === "production"
+      ? "/envision-demo-e-com/"
+      : "/",
 
   plugins: [react(), tailwindcss()],
 
@@ -13,4 +16,4 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
-})
+}))
