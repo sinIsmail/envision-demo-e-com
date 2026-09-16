@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Navbar from "@/components/Navbar";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ type CartItem = {
 };
 
 function Cart() {
+  const navigate = useNavigate();
   const [cartData, setCartData] = useState<CartItem[]>([]);
 
   // -----------------------------
@@ -259,7 +261,16 @@ function Cart() {
   // UI
   // -----------------------------
   return (
-    <div className="container mx-auto px-6 py-8">
+    <>
+      <Navbar />
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ← Continue Shopping
+        </button>
 
       {/* HEADER */}
       <div className="mb-8">
@@ -517,7 +528,8 @@ function Cart() {
 
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

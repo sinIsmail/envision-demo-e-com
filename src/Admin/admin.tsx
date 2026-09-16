@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase/fb";
 
 import {
   Card,
@@ -410,9 +413,42 @@ function OrdersTab() {
 // ROOT ADMIN PAGE
 // =============================================
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+
+  const handleSignout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("token");
+    navigate("/Login");
+  };
+
   return (
-    <div className="min-h-screen bg-muted/30 p-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-muted/30">
+
+      {/* ADMIN HEADER */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+          <span className="text-xl font-bold tracking-tight">
+            Shop<span className="text-primary">.</span>
+            <span className="ml-2 text-sm font-normal text-muted-foreground">Admin</span>
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/")}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Back to Store
+            </button>
+            <button
+              onClick={handleSignout}
+              className="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl p-6">
 
         {/* Header */}
         <div className="mb-8">
@@ -440,7 +476,6 @@ export default function AdminDashboard() {
             <OrdersTab />
           </TabsContent>
         </Tabs>
-
       </div>
     </div>
   );

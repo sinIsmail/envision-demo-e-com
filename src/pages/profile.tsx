@@ -1,374 +1,253 @@
 
-import React from "react"
-import { Link } from "react-router-dom"
+import React, { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { signOut } from "firebase/auth"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import {auth} from "../firebase/fb"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Navbar from "@/components/Navbar"
+
+import { auth, db } from "../firebase/fb"
+import { collection, getDocs, query, where, orderBy } from "firebase/firestore"
 
 import {
   ShoppingBag,
   Heart,
-  MapPin,
   Mail,
-  Phone,
   LogOut,
   Package,
   ArrowLeft,
+  ChevronRight,
 } from "lucide-react"
 
-const orders = [
-  {
-    id: "#ORD-1024",
-    date: "16 Sep 2026",
-    status: "Delivered",
-    total: 7999,
-    items: 1,
-  },
-  {
-    id: "#ORD-1021",
-    date: "10 Sep 2026",
-    status: "Shipped",
-    total: 32999,
-    items: 1,
-  },
-  {
-    id: "#ORD-1018",
-    date: "02 Sep 2026",
-    status: "Delivered",
-    total: 11998,
-    items: 2,
-  },
-]
-
-
 function Profile() {
- if(auth.currentUser){
-  
- }
+  const navigate = useNavigate()
+  const user = auth.currentUser
+
+  const [orders, setOrders] = useState<any[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) return
+      try {
+        const q = query(
+          collection(db, "orders"),
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc")
+        )
+        const snap = await getDocs(q)
+        setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      } catch (err) {
+        console.error("Error fetching orders:", err)
+      } finally {
+        setOrdersLoading(false)
+      }
+    }
+    fetchOrders()
+  }, [user])
+
+  const handleSignout = async () => {
+    await signOut(auth)
+    localStorage.removeItem("token")
+    navigate("/Login")
+  }
+
+  // Get initials for avatar fallback
+  const initials = user?.displayName
+    ? user.displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : (user?.email?.[0] ?? "U").toUpperCase()
+
+  const statusColor = (status: string) =>
+    status === "Delivered" ? "default" : "secondary"
+
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
 
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-
-          {/* LOGO */}
-          <Link
-            to="/"
-            className="text-2xl font-bold tracking-tight"
-          >
-            Shop<span className="text-primary">.</span>
-          </Link>
-
-          {/* NAV */}
-          <div className="flex items-center gap-2">
-            <Button variant="outline" >
-              <Link to="/Cart">
-                Cart
-              </Link>
-            </Button>
-
-            <Button >
-              <Link to="/Profile">
-                Profile
-              </Link>
-            </Button>
-          </div>
-
-        </div>
-      </header>
-
-      {/* MAIN */}
-      <main className="mx-auto max-w-7xl px-6 py-10">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
 
         {/* BACK */}
         <Button
           variant="ghost"
-          
-          className="-ml-3 mb-6"
+          size="sm"
+          className="-ml-2 mb-6"
+          onClick={() => navigate(-1)}
         >
-          <Link to="/">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Continue Shopping
-          </Link>
+          <ArrowLeft className="mr-1.5 h-4 w-4" />
+          Back
         </Button>
 
-        {/* HEADER */}
+        {/* PAGE TITLE */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">
-            My Account
-          </h1>
-
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight">My Account</h1>
+          <p className="mt-1 text-muted-foreground">
             Manage your account, orders and preferences.
           </p>
         </div>
 
-        {/* PROFILE + QUICK STATS */}
-        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
 
-          {/* PROFILE CARD */}
+          {/* LEFT — PROFILE CARD */}
           <Card className="h-fit">
-
             <CardContent className="flex flex-col items-center p-6 text-center">
 
-              <Avatar className="h-24 w-24">
-                <AvatarImage
-                  src="https://github.com/shadcn.png"
-                  alt="Profile"
-                />
-                <AvatarFallback>
-                  IS
-                </AvatarFallback>
+              <Avatar className="h-24 w-24 text-2xl">
+                <AvatarImage src={user?.photoURL ?? ""} alt="Profile" />
+                <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
 
               <h2 className="mt-4 text-xl font-semibold">
-                {auth.currentUser?.displayName}
+                {user?.displayName ?? "User"}
               </h2>
 
               <p className="text-sm text-muted-foreground">
-                {auth.currentUser?.email}
+                {user?.email}
               </p>
 
               <Badge className="mt-3" variant="secondary">
-                Premium Member
+                Member
               </Badge>
 
-              <Button
-                variant="outline"
-                className="mt-6 w-full"
-              >
-                Edit Profile
-              </Button>
+              <Separator className="my-4 w-full" />
+
+              {/* QUICK STATS */}
+              <div className="flex w-full justify-around text-center">
+                <div>
+                  <p className="text-2xl font-bold">{orders.length}</p>
+                  <p className="text-xs text-muted-foreground">Orders</p>
+                </div>
+              </div>
+
+              <Separator className="my-4 w-full" />
 
               <Button
                 variant="ghost"
-                className="mt-2 w-full text-destructive hover:text-destructive"
+                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleSignout}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Logout
+                Sign Out
               </Button>
 
             </CardContent>
-
           </Card>
 
-          {/* RIGHT CONTENT */}
+          {/* RIGHT — CONTENT */}
           <div className="space-y-6">
 
-            {/* ACCOUNT INFO */}
+            {/* PERSONAL INFO */}
             <Card>
               <CardHeader>
-                <CardTitle>
-                  Personal Information
-                </CardTitle>
+                <CardTitle>Personal Information</CardTitle>
               </CardHeader>
-
               <CardContent>
-
-                <div className="grid gap-6 sm:grid-cols-2">
-
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex items-start gap-3">
-                    <Mail className="mt-1 h-5 w-5 text-muted-foreground" />
-
+                    <Mail className="mt-1 h-5 w-5 text-muted-foreground shrink-0" />
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        Email
-                      </p>
-                      <p className="font-medium">
-                        {auth.currentUser?.email}
-                      </p>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium break-all">{user?.email ?? "—"}</p>
                     </div>
                   </div>
-
                   <div className="flex items-start gap-3">
-                    <Phone className="mt-1 h-5 w-5 text-muted-foreground" />
-
+                    <Package className="mt-1 h-5 w-5 text-muted-foreground shrink-0" />
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        Phone
-                      </p>
-                      <p className="font-medium">
-                        {auth.currentUser?.phoneNumber}
-                      </p>
+                      <p className="text-sm text-muted-foreground">Total Orders</p>
+                      <p className="font-medium">{orders.length} order{orders.length !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
-
-                  <div className="flex items-start gap-3">
-                    <MapPin className="mt-1 h-5 w-5 text-muted-foreground" />
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        UUID
-                      </p>
-                      <p className="font-medium">
-                        {auth.currentUser?.uid}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Package className="mt-1 h-5 w-5 text-muted-foreground" />
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Total Orders
-                      </p>
-                      <p className="font-medium">
-                        12 Orders
-                      </p>
-                    </div>
-                  </div>
-
                 </div>
-
               </CardContent>
             </Card>
 
             {/* TABS */}
             <Tabs defaultValue="orders" className="w-full">
-
-              <TabsList className="grid w-full grid-cols-2 ">
-                <TabsTrigger value="orders">
-                  Orders
-                </TabsTrigger>
-
-                <TabsTrigger value="wishlist">
-                  Wishlist
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
               </TabsList>
 
-              {/* ORDERS */}
-              <TabsContent value="orders" className="mt-6">
-
+              {/* ORDERS TAB */}
+              <TabsContent value="orders" className="mt-4">
                 <Card>
-
                   <CardHeader>
-                    <CardTitle>
-                      Recent Orders
-                    </CardTitle>
+                    <CardTitle>Recent Orders</CardTitle>
                   </CardHeader>
-
                   <CardContent>
-
-                    <div className="space-y-5">
-
-                      {orders.map((order, index) => (
-
-                        <React.Fragment key={order.id}>
-
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                            <div className="flex items-center gap-4">
-
-                              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted">
-                                <ShoppingBag className="h-5 w-5" />
+                    {ordersLoading ? (
+                      <p className="py-8 text-center text-muted-foreground">Loading orders...</p>
+                    ) : orders.length === 0 ? (
+                      <div className="flex flex-col items-center py-12 text-center">
+                        <ShoppingBag className="h-10 w-10 text-muted-foreground" />
+                        <h3 className="mt-3 text-lg font-semibold">No orders yet</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Your orders will appear here once you checkout.
+                        </p>
+                        <Button className="mt-4" onClick={() => navigate("/")}>
+                          Start Shopping
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {orders.map((order, index) => (
+                          <React.Fragment key={order.id}>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                  <ShoppingBag className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-sm">#{order.id.slice(-6).toUpperCase()}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {order.createdAt?.toDate
+                                      ? order.createdAt.toDate().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                                      : "—"}
+                                    {" · "}
+                                    {(order.items ?? []).length} item{(order.items ?? []).length !== 1 ? "s" : ""}
+                                  </p>
+                                </div>
                               </div>
-
-                              <div>
-                                <p className="font-semibold">
-                                  {order.id}
-                                </p>
-
-                                <p className="text-sm text-muted-foreground">
-                                  {order.date} · {order.items}{" "}
-                                  {order.items === 1
-                                    ? "item"
-                                    : "items"}
-                                </p>
+                              <div className="flex items-center gap-3 pl-13 sm:pl-0">
+                                <Badge variant={statusColor("Delivered")}>Delivered</Badge>
+                                <p className="font-semibold">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               </div>
-
                             </div>
-
-                            <div className="flex items-center gap-4">
-
-                              <Badge
-                                variant={
-                                  order.status === "Delivered"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                              >
-                                {order.status}
-                              </Badge>
-
-                              <p className="font-semibold">
-                                ₹{order.total.toLocaleString("en-IN")}
-                              </p>
-
-                              <Button
-                                variant="outline"
-                                size="sm"
-                              >
-                                View
-                              </Button>
-
-                            </div>
-
-                          </div>
-
-                          {index !== orders.length - 1 && (
-                            <Separator />
-                          )}
-
-                        </React.Fragment>
-
-                      ))}
-
-                    </div>
-
+                            {index !== orders.length - 1 && <Separator />}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
-
                 </Card>
-
               </TabsContent>
 
-              {/* WISHLIST */}
-              <TabsContent value="wishlist" className="mt-6">
-
+              {/* WISHLIST TAB */}
+              <TabsContent value="wishlist" className="mt-4">
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-
                     <Heart className="h-12 w-12 text-muted-foreground" />
-
-                    <h3 className="mt-4 text-xl font-semibold">
-                      Your wishlist is empty
-                    </h3>
-
+                    <h3 className="mt-4 text-xl font-semibold">Your wishlist is empty</h3>
                     <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                      Save products you love and come back to
-                      them later.
+                      Save products you love and come back to them later.
                     </p>
-
-                    <Button  className="mt-6">
-                      <Link to="/">
-                        Browse Products
-                      </Link>
+                    <Button className="mt-6" onClick={() => navigate("/")}>
+                      Browse Products
                     </Button>
-
                   </CardContent>
                 </Card>
-
               </TabsContent>
 
             </Tabs>
 
           </div>
-
         </div>
-
       </main>
-
     </div>
   )
 }
