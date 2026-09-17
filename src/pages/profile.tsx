@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { signOut } from "firebase/auth"
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore"
+import { collection, getDocs, query, where } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,13 +25,20 @@ function Profile() {
     if (!user) return
     const fetchOrders = async () => {
       try {
+        // No orderBy to avoid needing a composite index — sort client-side
         const q = query(
           collection(db, "orders"),
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
+          where("userId", "==", user.uid)
         )
         const snap = await getDocs(q)
-        setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+        const fetched = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        // Sort newest first
+        fetched.sort((a: any, b: any) => {
+          const ta = a.createdAt?.toMillis?.() ?? 0
+          const tb = b.createdAt?.toMillis?.() ?? 0
+          return tb - ta
+        })
+        setOrders(fetched)
       } catch (err) {
         console.error("Orders fetch error:", err)
       } finally {
@@ -142,30 +149,70 @@ function Profile() {
                       <div className="space-y-4">
                         {orders.map((order, idx) => (
                           <React.Fragment key={order.id}>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                                  <ShoppingBag className="h-5 w-5" />
-                                </div>
+                            <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+
+                              {/* Order header */}
+                              <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
-                                  <p className="font-semibold text-sm">#{order.id.slice(-8).toUpperCase()}</p>
+                                  <p className="font-semibold text-sm">Order #{order.id.slice(-8).toUpperCase()}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {order.createdAt?.toDate
-                                      ? order.createdAt.toDate().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                                      ? order.createdAt.toDate().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
                                       : "—"}
-                                    {" · "}{(order.items ?? []).length} item{(order.items ?? []).length !== 1 ? "s" : ""}
                                   </p>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge>Placed</Badge>
+                                  <span className="font-bold text-base">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-3 pl-13 sm:pl-0">
-                                <Badge>Placed</Badge>
-                                <p className="font-bold">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p>
+
+                              <Separator />
+
+                              {/* Items */}
+                              <div className="space-y-2">
+                                {(order.items ?? []).map((item: any, i: number) => (
+                                  <div key={i} className="flex items-center gap-3">
+                                    {item.image && (
+                                      <img src={item.image} alt={item.name} className="h-12 w-12 rounded-lg object-cover shrink-0 bg-muted" />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{item.name}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        ₹{Number(item.price).toLocaleString("en-IN")} × {item.quantity}
+                                      </p>
+                                    </div>
+                                    <p className="text-sm font-semibold shrink-0">
+                                      ₹{(Number(item.price) * Number(item.quantity)).toLocaleString("en-IN")}
+                                    </p>
+                                  </div>
+                                ))}
                               </div>
+
+                              {/* Delivery address */}
+                              {order.deliveryAddress && (
+                                <>
+                                  <Separator />
+                                  <div className="text-xs text-muted-foreground">
+                                    <p className="font-medium text-foreground mb-0.5">📦 Delivering to</p>
+                                    <p>{order.deliveryAddress.name} · {order.deliveryAddress.phone}</p>
+                                    <p>{order.deliveryAddress.line1}{order.deliveryAddress.line2 ? `, ${order.deliveryAddress.line2}` : ""}, {order.deliveryAddress.city} — {order.deliveryAddress.pincode}</p>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* Shipping note */}
+                              <div className="flex justify-between text-xs text-muted-foreground border-t pt-2">
+                                <span>Shipping: {order.shipping === 0 ? "Free" : `₹${order.shipping}`}</span>
+                                <span>Subtotal: ₹{Number(order.subtotal ?? 0).toLocaleString("en-IN")}</span>
+                              </div>
+
                             </div>
-                            {idx !== orders.length - 1 && <Separator />}
+                            {idx !== orders.length - 1 && <div className="h-1" />}
                           </React.Fragment>
                         ))}
                       </div>
+
                     )}
                   </CardContent>
                 </Card>
