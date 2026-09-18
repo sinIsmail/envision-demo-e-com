@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useLocation, useNavigate, Link } from "react-router-dom"
 import { signOut } from "firebase/auth"
 import { auth } from "@/firebase/fb"
 import { useAuth } from "@/context/AuthContext"
@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Menu, X, ShoppingCart, User, LogOut } from "lucide-react"
 
 export default function Navbar() {
+
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
-
+  
   const handleSignout = async () => {
     setOpen(false)
     await signOut(auth)
@@ -53,10 +54,19 @@ export default function Navbar() {
               {link.label}
             </Button>
           ))}
-          <Button variant="destructive" size="sm" onClick={handleSignout} className="flex items-center gap-1.5">
+         {auth.currentUser? <Button variant="destructive" size="sm" onClick={handleSignout} className="flex items-center gap-1.5">
             <LogOut className="h-4 w-4" />
             Sign Out
+          </Button>:
+          <div className="flex gap-2"><Button size="sm" onClick={handleSignout} className="flex items-center gap-1.5">
+            <Link to={'./Login'}></Link>
+            Login
           </Button>
+          <Button size="sm" onClick={handleSignout} className="flex items-center gap-1.5">
+            <Link to={'./Signup'}></Link>
+            Signup
+          </Button>
+            </div>}
         </nav>
 
         {/* MOBILE HAMBURGER */}

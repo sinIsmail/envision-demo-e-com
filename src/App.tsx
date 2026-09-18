@@ -14,26 +14,9 @@ import ProtectedRoute from "./components/protectedRoute"
 
 export function App() {
   return (
-  
- <BrowserRouter
-  basename={
-    import.meta.env.PROD
-      ? "/envision-demo-e-com"
-      : "/"
-  }
->
-    
+
+    <BrowserRouter basename={"/"}>
       <Routes>
-
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-
         <Route
           path="/Profile"
           element={
@@ -45,17 +28,13 @@ export function App() {
 
         <Route
           path="/Cart"
-          element={
-            <ProtectedRoute>
-              <Cart />
-            </ProtectedRoute>
-          }
+          element={<Cart />}
         />
 
         <Route
           path="/Admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly>
               <Admin />
             </ProtectedRoute>
           }
@@ -69,6 +48,12 @@ export function App() {
         <Route
           path="/Signup"
           element={<Signup />}
+        />
+         <Route
+          path="/"
+          element={
+            <Home />
+          }
         />
 
       </Routes>

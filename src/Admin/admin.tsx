@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/fb";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   Card,
@@ -451,6 +452,7 @@ function OrdersTab() {
 // =============================================
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSignout = async () => {
     await signOut(auth);
@@ -468,7 +470,12 @@ export default function AdminDashboard() {
             Shop<span className="text-primary">.</span>
             <span className="ml-2 text-sm font-normal text-muted-foreground">Admin</span>
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {user?.email && (
+              <span className="hidden text-xs text-muted-foreground sm:block">
+                {user.email}
+              </span>
+            )}
             <button
               onClick={() => navigate("/")}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,10 +9,12 @@ import { useAuth } from "@/context/AuthContext"
 
 function ProductCard({ product }: any) {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const cartHandler = async () => {
     if (!user) {
-      toast.add({ title: "Not logged in", description: "Please sign in to add items to cart." });
+      toast.add({ title: "Sign in to shop", description: "Please log in or create an account to add items to your cart." });
+      navigate("/Login");
       return;
     }
 

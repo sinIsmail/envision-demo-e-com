@@ -25,18 +25,17 @@ function Profile() {
     if (!user) return
     const fetchOrders = async () => {
       try {
-        // No orderBy to avoid needing a composite index — sort client-side
         const q = query(
           collection(db, "orders"),
           where("userId", "==", user.uid)
         )
         const snap = await getDocs(q)
-        const fetched = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        // Sort newest first
-        fetched.sort((a: any, b: any) => {
-          const ta = a.createdAt?.toMillis?.() ?? 0
-          const tb = b.createdAt?.toMillis?.() ?? 0
-          return tb - ta
+        const fetched = snap.docs.map((d) => ({ id: d.id, ...d.data() as any }))
+        // Sort newest first client-side (avoids needing a composite index)
+        fetched.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? 0
+          const bTime = b.createdAt?.toMillis?.() ?? 0
+          return bTime - aTime
         })
         setOrders(fetched)
       } catch (err) {
@@ -149,70 +148,30 @@ function Profile() {
                       <div className="space-y-4">
                         {orders.map((order, idx) => (
                           <React.Fragment key={order.id}>
-                            <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
-
-                              {/* Order header */}
-                              <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                  <ShoppingBag className="h-5 w-5" />
+                                </div>
                                 <div>
-                                  <p className="font-semibold text-sm">Order #{order.id.slice(-8).toUpperCase()}</p>
+                                  <p className="font-semibold text-sm">#{order.id.slice(-8).toUpperCase()}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {order.createdAt?.toDate
-                                      ? order.createdAt.toDate().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+                                      ? order.createdAt.toDate().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                                       : "—"}
+                                    {" · "}{(order.items ?? []).length} item{(order.items ?? []).length !== 1 ? "s" : ""}
                                   </p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge>Placed</Badge>
-                                  <span className="font-bold text-base">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</span>
-                                </div>
                               </div>
-
-                              <Separator />
-
-                              {/* Items */}
-                              <div className="space-y-2">
-                                {(order.items ?? []).map((item: any, i: number) => (
-                                  <div key={i} className="flex items-center gap-3">
-                                    {item.image && (
-                                      <img src={item.image} alt={item.name} className="h-12 w-12 rounded-lg object-cover shrink-0 bg-muted" />
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium truncate">{item.name}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        ₹{Number(item.price).toLocaleString("en-IN")} × {item.quantity}
-                                      </p>
-                                    </div>
-                                    <p className="text-sm font-semibold shrink-0">
-                                      ₹{(Number(item.price) * Number(item.quantity)).toLocaleString("en-IN")}
-                                    </p>
-                                  </div>
-                                ))}
+                              <div className="flex items-center gap-3 pl-13 sm:pl-0">
+                                <Badge>Placed</Badge>
+                                <p className="font-bold">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p>
                               </div>
-
-                              {/* Delivery address */}
-                              {order.deliveryAddress && (
-                                <>
-                                  <Separator />
-                                  <div className="text-xs text-muted-foreground">
-                                    <p className="font-medium text-foreground mb-0.5">📦 Delivering to</p>
-                                    <p>{order.deliveryAddress.name} · {order.deliveryAddress.phone}</p>
-                                    <p>{order.deliveryAddress.line1}{order.deliveryAddress.line2 ? `, ${order.deliveryAddress.line2}` : ""}, {order.deliveryAddress.city} — {order.deliveryAddress.pincode}</p>
-                                  </div>
-                                </>
-                              )}
-
-                              {/* Shipping note */}
-                              <div className="flex justify-between text-xs text-muted-foreground border-t pt-2">
-                                <span>Shipping: {order.shipping === 0 ? "Free" : `₹${order.shipping}`}</span>
-                                <span>Subtotal: ₹{Number(order.subtotal ?? 0).toLocaleString("en-IN")}</span>
-                              </div>
-
                             </div>
-                            {idx !== orders.length - 1 && <div className="h-1" />}
+                            {idx !== orders.length - 1 && <Separator />}
                           </React.Fragment>
                         ))}
                       </div>
-
                     )}
                   </CardContent>
                 </Card>

@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ─────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.uid == "TupK2gYT3tg9ZMCtpDLjPavLVgE2";
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── Products ─────────────────────────────────────────────────────────────
+    // Anyone can browse products; only admin can add / delete
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Users ────────────────────────────────────────────────────────────────
+    // Each user can read & write only their own doc; admin can read all
+    match /users/{userId} {
+      allow read:  if isAdmin() || isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // ── Cart ─────────────────────────────────────────────────────────────────
+    // Strictly per-user; admin does not need cart access
+    match /cart/{userId}/items/{itemId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ── Orders ───────────────────────────────────────────────────────────────
+    // Users can create orders and read their own; admin can read ALL orders
+    match /orders/{orderId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read:   if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      // Only admin can update / delete orders (e.g. status changes)
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Addresses ────────────────────────────────────────────────────────────
+    // Strictly per-user; admin does not need address access
+    match /users/{userId}/addresses/{addressId} {
+      allow read, write: if isOwner(userId);
+    }
+
+  }
+}

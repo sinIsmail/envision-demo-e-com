@@ -143,11 +143,10 @@ function AddressPicker({ uid, selectedId, onSelect }: { uid: string; selectedId:
         <div
           key={addr.id}
           onClick={() => onSelect(addr)}
-          className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all ${
-            selectedId === addr.id
+          className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all ${selectedId === addr.id
               ? "border-primary bg-primary/5"
               : "border-border hover:border-primary/40"
-          }`}
+            }`}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
@@ -204,7 +203,13 @@ function Cart() {
         const snap = await getDocs(collection(db, "cart", user.uid, "items"));
         setCartData(snap.docs.map((d) => {
           const data = d.data();
-          return { id: d.id, name: data.name, price: Number(data.price), quantity: Number(data.quantity), image: data.image };
+          return {
+            id: d.id,
+            name: data.name,
+            price: Number(data.price),
+            quantity: Number(data.quantity),
+            image: data.image
+          };
         }));
       } catch (err) {
         console.error(err);
@@ -273,6 +278,40 @@ function Cart() {
       setCheckingOut(false);
     }
   };
+
+  // ── Guest wall — show login prompt instead of empty cart ──────────────
+  if (!loading && !user) {
+    return (
+      <>
+        <Navbar />
+        <div className="flex min-h-[80vh] items-center justify-center px-4">
+          <div className="w-full max-w-sm text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+              <ShoppingBag className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight">Sign in to view your cart</h2>
+            <p className="mt-2 text-muted-foreground">
+              Create an account or log in to start shopping and track your orders.
+            </p>
+            <div className="mt-8 flex flex-col gap-3">
+              <Button size="lg" className="w-full" onClick={() => navigate("/Login")}>
+                Log In
+              </Button>
+              <Button size="lg" variant="outline" className="w-full" onClick={() => navigate("/Signup")}>
+                Create Account
+              </Button>
+            </div>
+            <button
+              onClick={() => navigate("/")}
+              className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Continue Browsing
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   if (loading) {
     return (
