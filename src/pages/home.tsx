@@ -13,8 +13,8 @@ function Products() {
     try {
       const querySnapshot = await getDocs(collection(db, "products"));
       const productData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
         ...doc.data(),
+        id: doc.id,   // always use the unique Firestore doc ID
       }));
       setProducts(productData);
     } catch (error) {

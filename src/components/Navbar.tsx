@@ -99,13 +99,19 @@ export default function Navbar() {
               {link.label}
             </button>
           ))}
-          <button
-            onClick={handleSignout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
-          >
+           {auth.currentUser? <Button variant="destructive" size="sm" onClick={handleSignout} className="flex items-center gap-1.5">
             <LogOut className="h-4 w-4" />
             Sign Out
-          </button>
+          </Button>:
+          <div className="flex gap-2"><Button size="sm" onClick={handleSignout} className="flex items-center gap-1.5">
+            <Link to={'./Login'}></Link>
+            Login
+          </Button>
+          <Button size="sm" onClick={handleSignout} className="flex items-center gap-1.5">
+            <Link to={'./Signup'}></Link>
+            Signup
+          </Button>
+            </div>}
         </div>
       )}
     </header>
