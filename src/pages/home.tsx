@@ -14,7 +14,7 @@ function Products() {
       const querySnapshot = await getDocs(collection(db, "products"));
       const productData = querySnapshot.docs.map((doc) => ({
         ...doc.data(),
-        id: doc.id,   // always use the unique Firestore doc ID
+        id: doc.id,
       }));
       setProducts(productData);
     } catch (error) {
@@ -24,16 +24,14 @@ function Products() {
     }
   };
 
-  useEffect(() => {
-    getProducts();
-  }, []);
+  useEffect(() => { getProducts(); }, []);
 
   if (loading) {
     return (
       <>
         <Navbar />
         <div className="flex min-h-[60vh] items-center justify-center">
-          <p className="text-muted-foreground">Loading products...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </>
     );
@@ -42,9 +40,13 @@ function Products() {
   return (
     <>
       <Navbar />
-     
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl font-bold tracking-tight sm:text-3xl">All Products</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">{products.length} items</p>
+        </div>
+        {/* 2 cols on mobile, 3 on md, 4 on lg */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

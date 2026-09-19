@@ -11,6 +11,7 @@ import Admin from "./Admin/admin"
 import Login from "./Auth/login"
 import Signup from "./Auth/signup"
 import ProtectedRoute from "./components/protectedRoute"
+import ProductDetail from "./pages/ProductDetail"
 
 export function App() {
   return (
@@ -49,6 +50,8 @@ export function App() {
           path="/Signup"
           element={<Signup />}
         />
+        <Route path="/product/:id" element={<ProductDetail />} />
+
          <Route
           path="/"
           element={
