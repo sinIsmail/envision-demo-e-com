@@ -71,7 +71,6 @@ type Address = {
   pincode: string;
 };
 
-const GUEST_CART_KEY = "cart";
 const PRODUCTS_KEY = "products";
 
 const EMPTY_ADDRESS = {
