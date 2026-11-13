@@ -879,11 +879,18 @@ function Cart() {
         let nextSeq = 1;
         const counterRef = doc(db, "metadata", "orders");
         const counterSnap = await tx.get(counterRef);
-        if (counterSnap.exists()) {
+        if (counterSnap.exists() && typeof counterSnap.data().lastOrderNumber === "number") {
           nextSeq = (Number(counterSnap.data().lastOrderNumber) || 0) + 1;
         } else {
+          // If metadata counter doc doesn't exist yet, derive from max existing order number or total count
           const ordersSnap = await getDocs(collection(db, "orders"));
-          nextSeq = ordersSnap.size + 1;
+          let maxExistingNumber = 0;
+          ordersSnap.docs.forEach((d) => {
+            const data = d.data();
+            const num = Number(data.orderNumber) || 0;
+            if (num > maxExistingNumber) maxExistingNumber = num;
+          });
+          nextSeq = Math.max(maxExistingNumber, ordersSnap.size) + 1;
         }
         tx.set(counterRef, { lastOrderNumber: nextSeq }, { merge: true });
 

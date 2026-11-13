@@ -39,6 +39,7 @@ import {
 } from "@/types/order";
 import { OrderStatusBadge } from "@/Admin/components/OrderStatusBadge";
 import { ConfirmDangerModal } from "@/Admin/components/ConfirmDangerModal";
+import { AdminOrderDetailModal } from "@/Admin/components/AdminOrderDetailModal";
 import {
   ChevronDown,
   ChevronUp,
@@ -53,6 +54,7 @@ import {
   FileSpreadsheet,
   Trash2,
   FileText,
+  Eye,
 } from "lucide-react";
 import { downloadOrderBill } from "@/lib/pdfBillGenerator";
 import { formatPrice } from "@/lib/themeUtils";
@@ -534,15 +536,19 @@ async function deleteInBatches(refs: any[]) {
 function OrderCard({
   order,
   index,
+  totalOrdersCount,
   onUpdated,
   onRequestCancel,
   onRequestDelete,
+  onSelectOrder,
 }: {
   order: Order;
   index: number;
+  totalOrdersCount?: number;
   onUpdated: (id: string, status: OrderStatus) => void;
   onRequestCancel: (order: Order) => void;
   onRequestDelete: (order: Order) => void;
+  onSelectOrder: (order: Order, index: number) => void;
 }) {
   const { settings } = useSiteSettings();
   const [expanded, setExpanded] = useState(false);
@@ -569,14 +575,14 @@ function OrderCard({
   };
 
   return (
-    <div className={`rounded-xl border bg-card relative transition-all ${
-      isCancelled ? "border-rose-200/60 bg-rose-50/10 dark:border-rose-950/50" : ""
-    }`}>
+    <div
+      onClick={() => onSelectOrder(order, index)}
+      className={`rounded-xl border bg-card relative transition-all cursor-pointer hover:border-primary/50 shadow-2xs ${
+        isCancelled ? "border-rose-200/60 bg-rose-50/10 dark:border-rose-950/50" : ""
+      }`}
+    >
       {/* Header row */}
-      <div
-        className="flex items-start gap-3 p-4 cursor-pointer select-none"
-        onClick={() => setExpanded((v) => !v)}
-      >
+      <div className="flex items-start gap-3 p-4 select-none">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted mt-0.5">
           <Package className="h-4 w-4 text-muted-foreground" />
         </div>
@@ -585,7 +591,7 @@ function OrderCard({
           {/* Row 1: sequential ID + status selector + total */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-muted/80 text-foreground border">
-              {formatOrderId(order, index)}
+              {formatOrderId(order, index, totalOrdersCount)}
             </span>
             <div onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
               <StatusDropdown
@@ -598,11 +604,23 @@ function OrderCard({
             <span className="font-bold text-sm ml-auto">
               {formatPrice(order.total, settings.currency, settings.currencyLocale)}
             </span>
-            {expanded ? (
-              <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              title="Expand quick summary"
+            >
+              {expanded ? (
+                <ChevronUp className="h-4 w-4 shrink-0" />
+              ) : (
+                <ChevronDown className="h-4 w-4 shrink-0" />
+              )}
+            </Button>
           </div>
 
           {/* Row 2: Customer Name & Phone */}
@@ -790,6 +808,12 @@ export function OrdersTab() {
   const [deleteTargetOrder, setDeleteTargetOrder] = useState<Order | null>(null);
   const [showDeleteAllOrdersModal, setShowDeleteAllOrdersModal] = useState(false);
 
+  // Full detail modal state (opens when tapping any order on desktop or mobile)
+  const [detailModalOrder, setDetailModalOrder] = useState<{
+    order: Order;
+    fallbackIndex: number;
+  } | null>(null);
+
   const fetchOrders = async (f: DateFilter) => {
     setLoading(true);
     try {
@@ -816,7 +840,59 @@ export function OrdersTab() {
         q = query(col, orderBy("createdAt", "desc"));
       }
       const snap = await getDocs(q);
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order)));
+      const loadedOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order));
+
+      // Automated chronological sequence backfill:
+      // If any existing order lacks orderNumber, sort all database orders by createdAt ascending,
+      // assign permanent chronological numbers (Order 1 = 1st order ever placed, newest = highest number),
+      // update Firestore docs, and initialize metadata/orders with the maximum count.
+      const hasUnassigned = loadedOrders.some((o) => typeof o.orderNumber !== "number");
+      if (hasUnassigned && f === "all") {
+        try {
+          const allAscSnap = await getDocs(
+            query(collection(db, "orders"), orderBy("createdAt", "asc"))
+          );
+          const batch = writeBatch(db);
+          let seq = 1;
+          const migrated: Order[] = [];
+
+          allAscSnap.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            const ord = { id: docSnap.id, ...data } as Order;
+            const assignedNum = seq++;
+            const formattedSeq = String(assignedNum).padStart(2, "0");
+
+            batch.update(docSnap.ref, {
+              orderNumber: assignedNum,
+              orderId: formattedSeq,
+            });
+
+            ord.orderNumber = assignedNum;
+            ord.orderId = formattedSeq;
+            migrated.push(ord);
+          });
+
+          // Sync atomic sequence counter in metadata/orders
+          const counterRef = doc(db, "metadata", "orders");
+          batch.set(counterRef, { lastOrderNumber: seq - 1 }, { merge: true });
+
+          await batch.commit();
+
+          // Sort descending (newest first) for UI display
+          migrated.sort((a, b) => {
+            const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+            const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+            return bTime - aTime;
+          });
+
+          setOrders(migrated);
+          return;
+        } catch (migrationErr) {
+          console.warn("Chronological backfill notice:", migrationErr);
+        }
+      }
+
+      setOrders(loadedOrders);
     } catch (err) {
       console.error(err);
       toast.add({ title: "Error", description: "Could not load orders." });
@@ -831,6 +907,11 @@ export function OrdersTab() {
 
   const handleStatusUpdate = (id: string, status: OrderStatus) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    setDetailModalOrder((prev) =>
+      prev && prev.order.id === id
+        ? { ...prev, order: { ...prev.order, status } }
+        : prev
+    );
   };
 
   // ─── Order Cancellation Handler with Inventory Stock Restoration ──────────
@@ -1095,9 +1176,13 @@ export function OrdersTab() {
                     key={o.id}
                     order={o}
                     index={i}
+                    totalOrdersCount={orders.length}
                     onUpdated={handleStatusUpdate}
                     onRequestCancel={(order) => setCancelTarget(order)}
                     onRequestDelete={(order) => setDeleteTargetOrder(order)}
+                    onSelectOrder={(order, idx) =>
+                      setDetailModalOrder({ order, fallbackIndex: idx })
+                    }
                   />
                 ))}
               </div>
@@ -1131,13 +1216,15 @@ export function OrdersTab() {
                       return (
                         <tr
                           key={o.id}
-                          className={`border-b last:border-0 hover:bg-muted/40 transition-colors ${
+                          onClick={() => setDetailModalOrder({ order: o, fallbackIndex: i })}
+                          className={`border-b last:border-0 hover:bg-muted/60 cursor-pointer transition-colors ${
                             isCancelled ? "bg-rose-50/20 dark:bg-rose-950/20" : ""
                           }`}
+                          title="Click to view full order details"
                         >
                           <td className="py-3.5 pr-4 font-mono text-xs font-bold text-foreground">
                             <span className="px-2 py-0.5 rounded bg-muted/80 border text-[11px]">
-                              {formatOrderId(o, i)}
+                              {formatOrderId(o, i, orders.length)}
                             </span>
                           </td>
 
@@ -1150,6 +1237,7 @@ export function OrdersTab() {
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <a
                                   href={`tel:${phone}`}
+                                  onClick={(e) => e.stopPropagation()}
                                   className="text-xs font-mono text-primary font-medium hover:underline flex items-center gap-1"
                                 >
                                   <Phone className="h-3 w-3" />
@@ -1157,7 +1245,10 @@ export function OrdersTab() {
                                 </a>
                                 <button
                                   type="button"
-                                  onClick={() => handleCopy(phone, `${o.id}-phone`)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopy(phone, `${o.id}-phone`);
+                                  }}
                                   className="text-muted-foreground hover:text-foreground"
                                   title="Copy phone"
                                 >
@@ -1218,7 +1309,7 @@ export function OrdersTab() {
                           </td>
 
                           {/* Status */}
-                          <td className="py-3.5 pr-4">
+                          <td className="py-3.5 pr-4" onClick={(e) => e.stopPropagation()}>
                             <OrderStatusBadge status={status} />
                           </td>
 
@@ -1241,8 +1332,21 @@ export function OrdersTab() {
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 text-right">
+                          <td className="py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDetailModalOrder({ order: o, fallbackIndex: i });
+                                }}
+                                className="h-8 px-2.5 text-xs gap-1 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground font-semibold"
+                                title="View Full Order Details"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                View
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1290,6 +1394,18 @@ export function OrdersTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Full Order Detail Modal on Tap */}
+      <AdminOrderDetailModal
+        order={detailModalOrder?.order ?? null}
+        open={Boolean(detailModalOrder)}
+        onClose={() => setDetailModalOrder(null)}
+        onStatusUpdate={handleStatusUpdate}
+        onRequestCancel={(ord) => setCancelTarget(ord)}
+        onRequestDelete={(ord) => setDeleteTargetOrder(ord)}
+        fallbackIndex={detailModalOrder?.fallbackIndex}
+        totalOrdersCount={orders.length}
+      />
 
       {/* Cancel Order Confirmation Modal */}
       <CancelOrderDialog

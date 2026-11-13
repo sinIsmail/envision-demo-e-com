@@ -87,11 +87,22 @@ export function effectiveStatus(order: Order): OrderStatus {
   return order.status ?? "placed";
 }
 
-/** Formats the sequential human-readable Order ID (e.g. #01, #02) */
-export function formatOrderId(order: { orderId?: string; orderNumber?: number; id?: string }, fallbackIndex?: number): string {
+/** Formats the sequential human-readable Order ID (e.g. #01, #02, #15) */
+export function formatOrderId(
+  order: { orderId?: string; orderNumber?: number; id?: string },
+  fallbackIndex?: number,
+  totalOrdersCount?: number
+): string {
   if (order.orderId) return `#${order.orderId}`;
   if (order.orderNumber) return `#${String(order.orderNumber).padStart(2, "0")}`;
-  if (typeof fallbackIndex === "number") return `#${String(fallbackIndex + 1).padStart(2, "0")}`;
+  if (typeof fallbackIndex === "number") {
+    // When sorted descending (newest first), index 0 is the newest order with highest number:
+    const num =
+      typeof totalOrdersCount === "number" && totalOrdersCount > 0
+        ? totalOrdersCount - fallbackIndex
+        : fallbackIndex + 1;
+    return `#${String(Math.max(1, num)).padStart(2, "0")}`;
+  }
   if (order.id) return `#${order.id.slice(-6).toUpperCase()}`;
   return "#01";
 }
