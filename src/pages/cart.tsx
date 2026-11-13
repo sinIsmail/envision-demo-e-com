@@ -875,22 +875,19 @@ function Cart() {
 
       // ── Atomic transaction: verify stock & decrement ──────────────────────
       await runTransaction(db, async (tx) => {
-        // Atomic sequential order numbering
+        // Atomic sequential order numbering via metadata/orders
         let nextSeq = 1;
         const counterRef = doc(db, "metadata", "orders");
-        const counterSnap = await tx.get(counterRef);
-        if (counterSnap.exists() && typeof counterSnap.data().lastOrderNumber === "number") {
-          nextSeq = (Number(counterSnap.data().lastOrderNumber) || 0) + 1;
-        } else {
-          // If metadata counter doc doesn't exist yet, derive from max existing order number or total count
-          const ordersSnap = await getDocs(collection(db, "orders"));
-          let maxExistingNumber = 0;
-          ordersSnap.docs.forEach((d) => {
-            const data = d.data();
-            const num = Number(data.orderNumber) || 0;
-            if (num > maxExistingNumber) maxExistingNumber = num;
-          });
-          nextSeq = Math.max(maxExistingNumber, ordersSnap.size) + 1;
+        try {
+          const counterSnap = await tx.get(counterRef);
+          if (counterSnap.exists()) {
+            const raw = counterSnap.data().lastOrderNumber;
+            nextSeq = (typeof raw === "number" ? raw : Number(raw) || 0) + 1;
+          } else {
+            nextSeq = 1;
+          }
+        } catch {
+          nextSeq = 1;
         }
         tx.set(counterRef, { lastOrderNumber: nextSeq }, { merge: true });
 

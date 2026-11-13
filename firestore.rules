@@ -71,6 +71,14 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ── Metadata (Sequential Counters & Store Settings) ───────────────────────
+    // Anyone signed in can read & increment sequence counter for orders
+    match /metadata/{docId} {
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
     // ── Addresses ────────────────────────────────────────────────────────────
     // Strictly per-user; admin can delete when removing users
     match /users/{userId}/addresses/{addressId} {
