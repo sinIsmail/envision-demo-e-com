@@ -1,29 +1,25 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth } from "firebase/auth"
-import { GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase credentials loaded from environment variables.
+// To use this project as a template for a different business,
+// simply swap the values in your .env file.
 const firebaseConfig = {
-  apiKey: "AIzaSyDSqnT6ZWjvS0BFc6tczEQrRPnWh7MfQjY",
-  authDomain: "envision-demo-com.firebaseapp.com",
-  projectId: "envision-demo-com",
-  storageBucket: "envision-demo-com.firebasestorage.app",
-  messagingSenderId: "190953866921",
-  appId: "1:190953866921:web:ec06a80e6e5db58f608bb8",
-  measurementId: "G-KG3E2XK5PQ"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-const db = getFirestore();
+const db = getFirestore(app);
 
-export {app, analytics, auth, provider, db};
+export { app, analytics, auth, provider, db };

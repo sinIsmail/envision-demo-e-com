@@ -6,13 +6,16 @@ import App from "./App.tsx"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 import { Toaster } from "./components/ui/toast.tsx"
 import { AuthProvider } from "@/context/AuthContext.tsx"
+import { SiteSettingsProvider } from "@/context/SiteSettingsContext.tsx"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <AuthProvider>
-        <App />
-        <Toaster />
+        <SiteSettingsProvider>
+          <App />
+          <Toaster />
+        </SiteSettingsProvider>
       </AuthProvider>
     </ThemeProvider>
   </StrictMode>

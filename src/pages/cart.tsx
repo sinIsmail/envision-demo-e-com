@@ -2,12 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { formatPrice } from "@/lib/themeUtils";
 import {
   readLocalCart,
   removeFromLocalCart,
@@ -24,9 +27,13 @@ import {
   setDoc,
   doc,
   serverTimestamp,
+  runTransaction,
 } from "firebase/firestore";
 import { db } from "@/firebase/fb";
 import { toast } from "@/components/ui/toast";
+import { sendOrderPlacedEmail } from "@/lib/emailService";
+import { downloadOrderBill } from "@/lib/pdfBillGenerator";
+import { type Order, type AppliedFee, formatOrderId } from "@/types/order";
 import {
   Trash2,
   Minus,
@@ -36,21 +43,35 @@ import {
   Plus as PlusIcon,
   CheckCircle2,
   X,
+  Phone,
+  AlertCircle,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // ─── Types ───────────────────────────────────────────────────────────
 type CartItem = {
-  id: string;          // Firestore cart document id
+  id: string;          // Firestore cart document id OR local composite id
   productId: string;   // Actual product id
   name: string;
   price: number;
   quantity: number;
   image: string;
+  variantLabel?: string;
 };
 
 type LocalCartItem = {
   id: string;
+  productId?: string;
   quantity: number;
+  variantLabel?: string;
+  price?: number;
 };
 
 type Product = {
@@ -64,6 +85,7 @@ type Address = {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   line1: string;
   line2: string;
   city: string;
@@ -76,6 +98,7 @@ const PRODUCTS_KEY = "products";
 const EMPTY_ADDRESS = {
   name: "",
   phone: "",
+  email: "",
   line1: "",
   line2: "",
   city: "",
@@ -116,7 +139,7 @@ async function getProductsForCart(localItems: LocalCartItem[]): Promise<CartItem
   const result: CartItem[] = [];
 
   for (const localItem of localItems) {
-    const productId = String(localItem.id);
+    const productId = String(localItem.productId ?? localItem.id);
     let product = localMap.get(productId);
 
     if (!product) {
@@ -130,7 +153,7 @@ async function getProductsForCart(localItems: LocalCartItem[]): Promise<CartItem
             id: productSnap.id,
             name: String(data.name ?? ""),
             price: Number(data.price ?? 0),
-            image: String(data.image ?? data.imageUrl ?? ""),
+            image: String(data.images?.[0] ?? data.image ?? data.imageUrl ?? ""),
           };
         }
       } catch (error) {
@@ -139,13 +162,15 @@ async function getProductsForCart(localItems: LocalCartItem[]): Promise<CartItem
     }
 
     if (product) {
+      const itemPrice = localItem.price ?? product.price;
       result.push({
-        id: productId,
+        id: localItem.id,
         productId,
         name: product.name,
-        price: product.price,
+        price: itemPrice,
         quantity: localItem.quantity,
         image: product.image,
+        variantLabel: localItem.variantLabel,
       });
     }
   }
@@ -157,11 +182,16 @@ async function getProductsForCart(localItems: LocalCartItem[]): Promise<CartItem
 function AddressForm({
   onSave,
   onCancel,
+  defaultPhone = "",
 }: {
   onSave: (a: Omit<Address, "id">) => Promise<void>;
   onCancel: () => void;
+  defaultPhone?: string;
 }) {
-  const [form, setForm] = useState(EMPTY_ADDRESS);
+  const [form, setForm] = useState({
+    ...EMPTY_ADDRESS,
+    phone: defaultPhone || "",
+  });
   const [saving, setSaving] = useState(false);
 
   const set = (key: string, val: string) =>
@@ -218,6 +248,17 @@ function AddressForm({
             value={form.phone}
             onChange={(e) => set("phone", e.target.value)}
             required
+          />
+        </div>
+
+        <div className="space-y-1 sm:col-span-2">
+          <Label htmlFor="addr-email">Email Address (for order receipts & tracking)</Label>
+          <Input
+            id="addr-email"
+            type="email"
+            placeholder="your-email@example.com"
+            value={form.email ?? ""}
+            onChange={(e) => set("email", e.target.value)}
           />
         </div>
 
@@ -295,10 +336,14 @@ function AddressPicker({
   uid,
   selectedId,
   onSelect,
+  defaultPhone = "",
+  onAddressSaved,
 }: {
   uid: string;
   selectedId: string;
   onSelect: (a: Address) => void;
+  defaultPhone?: string;
+  onAddressSaved?: (phone: string) => void;
 }) {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
@@ -343,6 +388,10 @@ function AddressPicker({
     setAddresses((prev) => [...prev, newAddr]);
     onSelect(newAddr);
     setShowForm(false);
+
+    if (onAddressSaved && form.phone) {
+      onAddressSaved(form.phone);
+    }
 
     toast.add({
       title: "Address saved ✓",
@@ -429,6 +478,7 @@ function AddressPicker({
         <AddressForm
           onSave={saveAddress}
           onCancel={() => setShowForm(false)}
+          defaultPhone={defaultPhone}
         />
       )}
     </div>
@@ -439,11 +489,48 @@ function AddressPicker({
 function Cart() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { settings } = useSiteSettings();
 
   const [cartData, setCartData] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [placedOrderSuccess, setPlacedOrderSuccess] = useState<Order | null>(null);
+
+  // User phone state & check
+  const [userPhone, setUserPhone] = useState<string>("");
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [modalPhoneInput, setModalPhoneInput] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+
+  // Load user phone from Firestore profile or Auth
+  useEffect(() => {
+    if (!user) {
+      setUserPhone("");
+      return;
+    }
+    let isMounted = true;
+    const loadUserPhone = async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists() && isMounted) {
+          const phone = snap.data().phone || "";
+          setUserPhone(phone);
+          setModalPhoneInput(phone);
+        } else if (user.phoneNumber && isMounted) {
+          setUserPhone(user.phoneNumber);
+          setModalPhoneInput(user.phoneNumber);
+        }
+      } catch (err) {
+        console.warn("Could not load user phone:", err);
+      }
+    };
+    loadUserPhone();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   // Load guest cart OR sync guest cart into Firestore after login.
   useEffect(() => {
@@ -475,23 +562,26 @@ function Cart() {
             const cartCol = collection(db, "cart", user.uid, "items");
             const existingSnap = await getDocs(cartCol);
 
-            const existingByProductId = new Map<
+            const existingByKey = new Map<
               string,
               { docId: string; quantity: number }
             >();
 
             existingSnap.docs.forEach((d) => {
               const data = d.data();
-              const productId = String(data.productId ?? data.productid ?? d.id);
+              const pId = String(data.productId ?? data.productid ?? d.id);
+              const vLabel = data.variantLabel ? String(data.variantLabel) : "";
+              const key = vLabel ? `${pId}_${vLabel}` : pId;
 
-              existingByProductId.set(productId, {
+              existingByKey.set(key, {
                 docId: d.id,
                 quantity: Number(data.quantity ?? 0),
               });
             });
 
             for (const item of localItems) {
-              const existing = existingByProductId.get(item.productId);
+              const itemKey = item.variantLabel ? `${item.productId}_${item.variantLabel}` : item.productId;
+              const existing = existingByKey.get(itemKey);
 
               if (existing) {
                 await updateDoc(
@@ -499,21 +589,20 @@ function Cart() {
                   {
                     quantity: existing.quantity + item.quantity,
                     productId: item.productId,
+                    productid: item.productId,
                   },
                 );
               } else {
-                // Use product id as the cart document id for easy future merging.
-                await setDoc(
-                  doc(db, "cart", user.uid, "items", item.productId),
-                  {
-                    productId: item.productId,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                    image: item.image,
-                    updatedAt: serverTimestamp(),
-                  },
-                );
+                await addDoc(cartCol, {
+                  productId: item.productId,
+                  productid: item.productId,
+                  name: item.name,
+                  price: item.price,
+                  quantity: item.quantity,
+                  image: item.image,
+                  variantLabel: item.variantLabel ?? null,
+                  updatedAt: serverTimestamp(),
+                });
               }
             }
           }
@@ -532,11 +621,12 @@ function Cart() {
 
           return {
             id: d.id,
-            productId: String(data.productId ?? d.id),
+            productId: String(data.productId ?? data.productid ?? d.id),
             name: String(data.name ?? ""),
             price: Number(data.price ?? 0),
             quantity: Math.max(1, Number(data.quantity ?? 1)),
             image: String(data.image ?? data.imageUrl ?? ""),
+            variantLabel: data.variantLabel ? String(data.variantLabel) : undefined,
           };
         });
 
@@ -572,11 +662,11 @@ function Cart() {
           doc(db, "cart", user.uid, "items", item.id),
         );
       } else {
-        removeFromLocalCart(item.productId);
+        removeFromLocalCart(item.id);
       }
 
       setCartData((prev) =>
-        prev.filter((cartItem) => cartItem.productId !== item.productId),
+        prev.filter((cartItem) => cartItem.id !== item.id),
       );
     } catch (error) {
       console.error(error);
@@ -606,12 +696,12 @@ function Cart() {
           },
         );
       } else {
-        updateLocalCartQuantity(item.productId, newQty);
+        updateLocalCartQuantity(item.id, newQty);
       }
 
       setCartData((prev) =>
         prev.map((cartItem) =>
-          cartItem.productId === item.productId
+          cartItem.id === item.id
             ? { ...cartItem, quantity: newQty }
             : cartItem,
         ),
@@ -630,9 +720,44 @@ function Cart() {
     0,
   );
 
-  // ₹25 delivery. Free delivery for orders above ₹999.
-  const shipping = subtotal > 999 ? 0 : 25;
-  const total = subtotal + shipping;
+  // Dynamic Billing Fees & Delivery Charge (Admin controlled)
+  const activeBillingFees: AppliedFee[] = React.useMemo(() => {
+    if (settings.billingFees && settings.billingFees.length > 0) {
+      return settings.billingFees
+        .filter((fee) => fee.enabled)
+        .map((fee) => {
+          const isWaived = Boolean(fee.waiveAbove && fee.waiveAbove > 0 && subtotal >= fee.waiveAbove);
+          return {
+            id: fee.id,
+            name: fee.name,
+            amount: isWaived ? 0 : Number(fee.amount) || 0,
+            waived: isWaived,
+          };
+        });
+    }
+
+    // Fallback to single delivery charge settings
+    const feeDelivery = Number(settings.deliveryCharge ?? 25);
+    const waiveThreshold = Number(settings.freeDeliveryAbove ?? 999);
+    const isWaived = waiveThreshold > 0 && subtotal >= waiveThreshold;
+    return [
+      {
+        id: "fee_delivery",
+        name: settings.deliveryChargeLabel || "Delivery",
+        amount: isWaived ? 0 : feeDelivery,
+        waived: isWaived,
+      },
+    ];
+  }, [settings.billingFees, settings.deliveryCharge, settings.deliveryChargeLabel, settings.freeDeliveryAbove, subtotal]);
+
+  const totalFees = React.useMemo(() => {
+    return activeBillingFees.reduce((acc, f) => acc + (f.waived ? 0 : f.amount), 0);
+  }, [activeBillingFees]);
+
+  const freeDeliveryAbove = Number(settings.freeDeliveryAbove ?? 999);
+  const deliveryChargeLabel = settings.deliveryChargeLabel || "Delivery";
+  const shipping = totalFees;
+  const total = subtotal + totalFees;
 
   const goToLogin = () => {
     navigate("/Login", {
@@ -646,8 +771,51 @@ function Cart() {
     });
   };
 
-  const checkout = async () => {
-    // Guest checkout is not allowed, but the cart stays in localStorage.
+  const handleSaveUserPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const cleanPhone = modalPhoneInput.trim();
+    const digitsOnly = cleanPhone.replace(/\D/g, "");
+    if (digitsOnly.length < 10) {
+      setPhoneError("Please enter a valid phone number (at least 10 digits).");
+      return;
+    }
+
+    setPhoneError("");
+    setSavingPhone(true);
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          uid: user.uid,
+          phone: cleanPhone,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setUserPhone(cleanPhone);
+      setPhoneModalOpen(false);
+
+      toast.add({
+        title: "Phone number saved ✓",
+        description: "Your phone number has been linked to your profile.",
+      });
+
+      // If user already has address selected, proceed to confirm order
+      if (selectedAddress?.id && cartData.length > 0) {
+        executeCheckout(cleanPhone);
+      }
+    } catch (err: any) {
+      console.error("Save phone error:", err);
+      setPhoneError(err.message || "Failed to save phone number.");
+    } finally {
+      setSavingPhone(false);
+    }
+  };
+
+  const checkout = async (overridePhone?: string) => {
     if (!user) {
       goToLogin();
       return;
@@ -655,68 +823,324 @@ function Cart() {
 
     if (cartData.length === 0) return;
 
+    // ── 1. Check if user has a phone number before confirming order ──
+    let activePhone = (overridePhone || userPhone).trim();
+    if (!activePhone) {
+      try {
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists() && userSnap.data().phone) {
+          activePhone = String(userSnap.data().phone).trim();
+          setUserPhone(activePhone);
+        } else if (user.phoneNumber) {
+          activePhone = user.phoneNumber.trim();
+          setUserPhone(activePhone);
+        }
+      } catch (err) {
+        console.warn("Could not check user phone in checkout:", err);
+      }
+    }
+
+    if (!activePhone) {
+      toast.add({
+        title: "Phone number required",
+        description: "Please provide your phone number before confirming your order.",
+      });
+      setModalPhoneInput(selectedAddress?.phone || "");
+      setPhoneError("");
+      setPhoneModalOpen(true);
+      return;
+    }
+
+    // ── 2. Check if delivery address is selected ──────────────────────────
     if (!selectedAddress?.id) {
       toast.add({
         title: "Select a delivery address",
-        description:
-          "Please choose or add an address before checkout.",
+        description: "Please choose or add an address before checkout.",
       });
       return;
     }
 
+    // ── 3. Proceed to execute checkout ────────────────────────────────────
+    executeCheckout(activePhone);
+  };
+
+  const executeCheckout = async (activePhone: string) => {
+    if (!selectedAddress?.id || !user) return;
+
     try {
       setCheckingOut(true);
+      let placedOrderId = "";
+      let placedOrderNumber = 1;
+      let placedOrderSeqId = "01";
 
-      await addDoc(collection(db, "orders"), {
+      // ── Atomic transaction: verify stock & decrement ──────────────────────
+      await runTransaction(db, async (tx) => {
+        // Atomic sequential order numbering
+        let nextSeq = 1;
+        const counterRef = doc(db, "metadata", "orders");
+        const counterSnap = await tx.get(counterRef);
+        if (counterSnap.exists()) {
+          nextSeq = (Number(counterSnap.data().lastOrderNumber) || 0) + 1;
+        } else {
+          const ordersSnap = await getDocs(collection(db, "orders"));
+          nextSeq = ordersSnap.size + 1;
+        }
+        tx.set(counterRef, { lastOrderNumber: nextSeq }, { merge: true });
+
+        const formattedSeqId = String(nextSeq).padStart(2, "0");
+        placedOrderNumber = nextSeq;
+        placedOrderSeqId = formattedSeqId;
+        // Group cart items by productId so we only read each product doc once.
+        // Key: productId → list of { variantLabel?, quantity }
+        type LineItem = { variantLabel?: string; quantity: number; name: string };
+        const linesByProduct = new Map<string, LineItem[]>();
+        for (const item of cartData) {
+          const lines = linesByProduct.get(item.productId) ?? [];
+          lines.push({ variantLabel: item.variantLabel, quantity: item.quantity, name: item.name });
+          linesByProduct.set(item.productId, lines);
+        }
+
+        // Fetch all unique product docs inside the transaction
+        const productIds = Array.from(linesByProduct.keys());
+        const productSnaps = await Promise.all(
+          productIds.map((id) => tx.get(doc(db, "products", id)))
+        );
+
+        for (let i = 0; i < productIds.length; i++) {
+          const pid = productIds[i];
+          const snap = productSnaps[i];
+          const lines = linesByProduct.get(pid)!;
+
+          if (!snap.exists()) {
+            const name = lines[0]?.name ?? pid;
+            throw new Error(`Product "${name}" no longer exists.`);
+          }
+
+          const data = snap.data() as any;
+
+          if (data.hasVariants && Array.isArray(data.unitVariants)) {
+            // ── Variant product: check & decrement per-variant stock ──────────
+            const updatedVariants: any[] = data.unitVariants.map((v: any) => ({ ...v }));
+
+            for (const line of lines) {
+              if (!line.variantLabel) continue; // safety guard
+              const varIdx = updatedVariants.findIndex(
+                (v: any) => v.label === line.variantLabel
+              );
+              if (varIdx === -1) {
+                throw new Error(
+                  `Variant "${line.variantLabel}" of "${data.name}" was not found.`
+                );
+              }
+              const currentVariantStock = Number(updatedVariants[varIdx].stock ?? 0);
+              if (currentVariantStock < line.quantity) {
+                throw new Error(
+                  `"${data.name} (${line.variantLabel})" only has ${currentVariantStock} in stock, ` +
+                  `but you ordered ${line.quantity}.`
+                );
+              }
+              updatedVariants[varIdx].stock = currentVariantStock - line.quantity;
+            }
+
+            // Recalculate the aggregate stock field (sum of all variants)
+            const newTotalStock = updatedVariants.reduce(
+              (sum: number, v: any) => sum + (Number(v.stock) || 0),
+              0
+            );
+
+            tx.update(doc(db, "products", pid), {
+              unitVariants: updatedVariants,
+              stock: newTotalStock,
+            });
+          } else {
+            // ── Plain product: check & decrement top-level stock ──────────────
+            const totalQty = lines.reduce((sum, l) => sum + l.quantity, 0);
+            const currentStock = Number(data.stock ?? 0);
+            if (currentStock < totalQty) {
+              throw new Error(
+                `"${data.name}" only has ${currentStock} in stock, but you ordered ${totalQty}.`
+              );
+            }
+            tx.update(doc(db, "products", pid), {
+              stock: currentStock - totalQty,
+            });
+          }
+        }
+
+        // Resolve customer email (selected address email, user email, or provider auth email)
+        const customerEmail =
+          selectedAddress.email?.trim() ||
+          user.email ||
+          user.providerData?.find((p) => p.email)?.email ||
+          "";
+
+        // Write the order document
+        const orderRef = doc(collection(db, "orders"));
+        placedOrderId = orderRef.id;
+        tx.set(orderRef, {
+          userId: user.uid,
+          userEmail: customerEmail,
+          userName: user.displayName ?? selectedAddress.name ?? "",
+          userPhone: activePhone,
+          orderNumber: nextSeq,
+          orderId: formattedSeqId,
+          items: cartData.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+            ...(item.variantLabel && { variantLabel: item.variantLabel }),
+          })),
+          deliveryAddress: {
+            name: selectedAddress.name,
+            phone: selectedAddress.phone || activePhone,
+            email: customerEmail,
+            line1: selectedAddress.line1,
+            line2: selectedAddress.line2,
+            city: selectedAddress.city,
+            state: selectedAddress.state,
+            pincode: selectedAddress.pincode,
+          },
+          subtotal,
+          shipping: totalFees,
+          billingFees: activeBillingFees,
+          total,
+          status: "placed",
+          createdAt: serverTimestamp(),
+        });
+      });
+      // ─────────────────────────────────────────────────────────────────────
+
+      // Clear cart items from Firestore
+      await Promise.all(
+        cartData.map((item) =>
+          deleteDoc(doc(db, "cart", user.uid, "items", item.id))
+        )
+      );
+
+      // Trigger asynchronous order confirmation email
+      const customerEmail =
+        selectedAddress.email?.trim() ||
+        user.email ||
+        user.providerData?.find((p) => p.email)?.email ||
+        "";
+
+      const customerName =
+        selectedAddress.name?.trim() ||
+        user.displayName?.trim() ||
+        (customerEmail ? customerEmail.split("@")[0] : "") ||
+        "Valued Customer";
+
+      const placedOrderObj: Order = {
+        id: placedOrderId || "ORD-" + Date.now().toString().slice(-6),
+        orderNumber: placedOrderNumber,
+        orderId: placedOrderSeqId,
         userId: user.uid,
-        userEmail: user.email ?? "",
-        userName: user.displayName ?? "",
-
+        userName: customerName,
+        userEmail: customerEmail,
         items: cartData.map((item) => ({
           productId: item.productId,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
           image: item.image,
+          variantLabel: item.variantLabel,
         })),
-
         deliveryAddress: {
-          name: selectedAddress.name,
-          phone: selectedAddress.phone,
+          name: selectedAddress.name || customerName,
+          phone: selectedAddress.phone || activePhone,
+          email: customerEmail,
           line1: selectedAddress.line1,
           line2: selectedAddress.line2,
           city: selectedAddress.city,
           state: selectedAddress.state,
           pincode: selectedAddress.pincode,
         },
-
         subtotal,
-        shipping,
+        shipping: totalFees,
+        billingFees: activeBillingFees,
         total,
-        createdAt: serverTimestamp(),
-      });
+        status: "placed",
+        createdAt: null,
+      };
 
-      await Promise.all(
-        cartData.map((item) =>
-          deleteDoc(
-            doc(db, "cart", user.uid, "items", item.id),
-          ),
-        ),
-      );
+      setPlacedOrderSuccess(placedOrderObj);
+
+      // (Automatic PDF download cancelled — customer can download on demand via the button on confirmation card)
+
+      if (customerEmail) {
+        const itemsList = cartData
+          .map(
+            (it, idx) =>
+              `${idx + 1}. ${it.name}${it.variantLabel ? ` [${it.variantLabel}]` : ""} × ${it.quantity} — ${formatPrice(it.price * it.quantity, settings.currency, settings.currencyLocale)}`
+          )
+          .join("\n");
+
+        const fullAddr = [
+          selectedAddress.name || customerName,
+          selectedAddress.phone || activePhone,
+          selectedAddress.line1,
+          selectedAddress.line2,
+          `${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        sendOrderPlacedEmail(
+          {
+            toEmail: customerEmail,
+            toName: customerName,
+            orderId: `#${placedOrderSeqId}`,
+            orderDate: new Date().toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+            itemsList,
+            subtotal: formatPrice(subtotal, settings.currency, settings.currencyLocale),
+            shipping: totalFees === 0 ? "Free" : formatPrice(totalFees, settings.currency, settings.currencyLocale),
+            total: formatPrice(total, settings.currency, settings.currencyLocale),
+            deliveryAddress: fullAddr,
+            brandName: settings.brandName || "Shop.",
+          },
+          settings
+        )
+          .then((res) => {
+            if (res.success) {
+              console.info("[Email] Confirmation email sent successfully to", customerEmail);
+              toast.add({
+                title: "Order Placed Successfully! 🎉✉️",
+                description: `Confirmation email sent to ${customerEmail}.`,
+              });
+            } else {
+              console.warn("[Email] Automated order email notice:", res.message);
+              toast.add({
+                title: "Order Placed! 🎉",
+                description: `Order #${placedOrderSeqId} confirmed. Email notice: ${res.message}`,
+              });
+            }
+          })
+          .catch((emailErr) => {
+            console.warn("[Email] Could not send order placed notification:", emailErr);
+          });
+      } else {
+        toast.add({
+          title: "Order placed & Invoice Generated! 📄🎉",
+          description: `Delivering to ${selectedAddress.name}, ${selectedAddress.city}.`,
+        });
+      }
 
       setCartData([]);
-
-      toast.add({
-        title: "Order placed! 🎉",
-        description: `Delivering to ${selectedAddress.name}, ${selectedAddress.city}.`,
-      });
     } catch (err: any) {
       console.error("Checkout error:", err);
 
       toast.add({
         title: "Checkout failed",
         description:
-          err?.code === "permission-denied"
+          err?.message && !err.message.includes("permission")
+            ? err.message
+            : err?.code === "permission-denied"
             ? "Please sign in again and retry."
             : "Something went wrong.",
       });
@@ -760,7 +1184,45 @@ function Cart() {
           </p>
         </div>
 
-        {cartData.length === 0 ? (
+        {placedOrderSuccess ? (
+          <Card className="flex flex-col items-center justify-center py-12 px-6 text-center max-w-xl mx-auto shadow-lg border-primary/20 rounded-3xl bg-white dark:bg-slate-900">
+            <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 mb-4 shadow-sm">
+              <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground">
+              Order Confirmed! 🎉
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Order Reference:{" "}
+              <strong className="text-foreground font-mono font-bold text-base px-2.5 py-0.5 rounded-lg bg-muted/70 border">
+                {formatOrderId(placedOrderSuccess)}
+              </strong>
+            </p>
+            <p className="mt-1.5 text-xs text-muted-foreground max-w-md">
+              A detailed confirmation email has been dispatched to{" "}
+              <strong>{placedOrderSuccess.userEmail || "your email address"}</strong>.
+            </p>
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+              <Button
+                variant="outline"
+                className="flex-1 gap-2 border-primary/40 font-semibold text-primary hover:bg-primary/5 rounded-xl h-11"
+                onClick={() => downloadOrderBill(placedOrderSuccess, settings)}
+              >
+                📄 Download PDF Bill
+              </Button>
+              <Button
+                className="flex-1 font-semibold rounded-xl h-11"
+                onClick={() => {
+                  setPlacedOrderSuccess(null);
+                  navigate("/");
+                }}
+              >
+                Continue Shopping
+              </Button>
+            </div>
+          </Card>
+        ) : cartData.length === 0 ? (
           <Card className="flex flex-col items-center justify-center py-20 text-center">
             <ShoppingBag className="mb-4 h-12 w-12 text-muted-foreground" />
 
@@ -781,7 +1243,7 @@ function Cart() {
             {/* LEFT COLUMN */}
             <div className="space-y-6">
               {/* CART ITEMS */}
-              <Card>
+              <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
                 <CardHeader>
                   <CardTitle>Your Items</CardTitle>
                 </CardHeader>
@@ -791,12 +1253,12 @@ function Cart() {
                     {cartData.map((item, index) => (
                       <React.Fragment key={item.productId}>
                         <div className="flex gap-4">
-                          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
+                          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-2 flex items-center justify-center">
                             {item.image ? (
                               <img
                                 src={item.image}
                                 alt={item.name}
-                                className="h-full w-full object-cover"
+                                className="h-full w-full object-contain"
                               />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center">
@@ -807,55 +1269,58 @@ function Cart() {
 
                           <div className="flex min-w-0 flex-1 flex-col justify-between">
                             <div className="flex justify-between gap-2">
-                              <h3 className="font-semibold leading-tight">
-                                {item.name}
-                              </h3>
+                              <div>
+                                <h3 className="font-semibold leading-tight">
+                                  {item.name}
+                                </h3>
+                                {item.variantLabel && (
+                                  <Badge variant="outline" className="mt-1 text-[11px] font-medium">
+                                    {item.variantLabel}
+                                  </Badge>
+                                )}
+                              </div>
 
                               <p className="shrink-0 font-bold">
-                                ₹
-                                {(
-                                  item.price * item.quantity
-                                ).toLocaleString("en-IN")}
+                                {formatPrice(item.price * item.quantity, settings.currency, settings.currencyLocale)}
                               </p>
                             </div>
 
                             <p className="text-sm text-muted-foreground">
-                              ₹
-                              {item.price.toLocaleString("en-IN")} each
+                              {formatPrice(item.price, settings.currency, settings.currencyLocale)} each
                             </p>
 
                             <div className="mt-2 flex items-center justify-between">
-                              <div className="flex items-center rounded-md border">
+                              <div className="flex items-center rounded-full border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-0.5 shadow-2xs">
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-none"
+                                  className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
                                   onClick={() => changeQty(item, -1)}
                                 >
-                                  <Minus className="h-4 w-4" />
+                                  <Minus className="h-3.5 w-3.5" />
                                 </Button>
 
-                                <div className="flex h-8 w-10 items-center justify-center border-x text-sm font-medium">
+                                <div className="flex h-7 min-w-8 px-1 items-center justify-center text-xs font-semibold text-foreground">
                                   {item.quantity}
                                 </div>
 
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-none"
+                                  className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
                                   onClick={() => changeQty(item, 1)}
                                 >
-                                  <Plus className="h-4 w-4" />
+                                  <Plus className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
 
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive h-8 px-2.5 rounded-full"
                                 onClick={() => removeItem(item)}
                               >
-                                <Trash2 className="mr-1.5 h-4 w-4" />
+                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                                 Remove
                               </Button>
                             </div>
@@ -871,7 +1336,7 @@ function Cart() {
 
               {/* DELIVERY ADDRESS ONLY FOR LOGGED-IN USERS */}
               {user ? (
-                <Card>
+                <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MapPin className="h-5 w-5" />
@@ -892,6 +1357,17 @@ function Cart() {
                       onSelect={(address) =>
                         setSelectedAddress(address)
                       }
+                      defaultPhone={userPhone}
+                      onAddressSaved={(phone) => {
+                        if (!userPhone) {
+                          setUserPhone(phone);
+                          setDoc(
+                            doc(db, "users", user.uid),
+                            { phone, updatedAt: serverTimestamp() },
+                            { merge: true }
+                          ).catch(console.warn);
+                        }
+                      }}
                     />
                   </CardContent>
                 </Card>
@@ -899,7 +1375,7 @@ function Cart() {
             </div>
 
             {/* ORDER SUMMARY */}
-            <Card className="h-fit lg:sticky lg:top-20">
+            <Card className="h-fit lg:sticky lg:top-20 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
@@ -912,26 +1388,26 @@ function Cart() {
                     </span>
 
                     <span>
-                      ₹{subtotal.toLocaleString("en-IN")}
+                      {formatPrice(subtotal, settings.currency, settings.currencyLocale)}
                     </span>
                   </div>
 
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Delivery
-                    </span>
+                  {/* Dynamic Billing Fees Breakdown */}
+                  {activeBillingFees.map((fee) => (
+                    <div key={fee.id} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{fee.name}</span>
+                      <span className={fee.waived ? "font-semibold text-emerald-600 dark:text-emerald-400" : ""}>
+                        {fee.waived
+                          ? "Free 🎉"
+                          : formatPrice(fee.amount, settings.currency, settings.currencyLocale)}
+                      </span>
+                    </div>
+                  ))}
 
-                    <span>
-                      {shipping === 0
-                        ? "Free 🎉"
-                        : `₹${shipping}`}
-                    </span>
-                  </div>
-
-                  {shipping > 0 && (
+                  {freeDeliveryAbove > 0 && shipping > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Add ₹{Math.max(0, 1000 - subtotal).toLocaleString("en-IN")} more
-                      for free delivery.
+                      Add {formatPrice(Math.max(0, freeDeliveryAbove - subtotal), settings.currency, settings.currencyLocale)} more
+                      for free {deliveryChargeLabel.toLowerCase()}.
                     </p>
                   )}
 
@@ -941,9 +1417,45 @@ function Cart() {
                     <span>Total</span>
 
                     <span>
-                      ₹{total.toLocaleString("en-IN")}
+                      {formatPrice(total, settings.currency, settings.currencyLocale)}
                     </span>
                   </div>
+
+                  {/* Contact Phone Status */}
+                  {user && (
+                    userPhone ? (
+                      <div className="flex items-center justify-between text-xs py-1 text-muted-foreground px-0.5">
+                        <span className="flex items-center gap-1.5">
+                          <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
+                          Contact Phone:
+                        </span>
+                        <span className="font-semibold text-foreground">{userPhone}</span>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            Phone number required
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalPhoneInput(selectedAddress?.phone || "");
+                              setPhoneError("");
+                              setPhoneModalOpen(true);
+                            }}
+                            className="underline font-bold text-primary hover:opacity-80 cursor-pointer"
+                          >
+                            Add Phone
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          A contact phone number is required before confirming your order.
+                        </p>
+                      </div>
+                    )
+                  )}
 
                   {user && selectedAddress?.id ? (
                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
@@ -978,18 +1490,19 @@ function Cart() {
                     <Button
                       className="w-full"
                       size="lg"
-                      onClick={checkout}
+                      onClick={() => checkout()}
                       disabled={
                         checkingOut ||
-                        !selectedAddress?.id ||
                         cartData.length === 0
                       }
                     >
                       {checkingOut
                         ? "Placing order..."
-                        : !selectedAddress?.id
-                          ? "Select Address to Checkout"
-                          : "Place Order"}
+                        : !userPhone
+                          ? "Add Phone to Place Order"
+                          : !selectedAddress?.id
+                            ? "Select Address to Checkout"
+                            : "Place Order"}
                     </Button>
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
@@ -1010,15 +1523,71 @@ function Cart() {
                     </div>
                   )}
 
-                  <p className="text-center text-xs text-muted-foreground">
-                    Free delivery on orders above ₹999.
-                  </p>
+                  {freeDeliveryAbove > 0 && (
+                    <p className="text-center text-xs text-muted-foreground">
+                      Free {deliveryChargeLabel.toLowerCase()} on orders above {formatPrice(freeDeliveryAbove, settings.currency, settings.currencyLocale)}.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
       </div>
+
+      {/* Phone Number Modal Required before Checkout */}
+      <Dialog open={phoneModalOpen} onOpenChange={setPhoneModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-primary" />
+              Phone Number Required
+            </DialogTitle>
+            <DialogDescription>
+              A valid phone number is required to confirm your order for courier delivery coordination and order updates.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveUserPhone} className="space-y-4 pt-2">
+            {phoneError && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{phoneError}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="checkout-phone-input">Mobile Phone Number *</Label>
+              <Input
+                id="checkout-phone-input"
+                type="tel"
+                placeholder="e.g. 9876543210 or +91 9876543210"
+                value={modalPhoneInput}
+                onChange={(e) => setModalPhoneInput(e.target.value)}
+                required
+                autoFocus
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Must be at least 10 digits. This will also be saved to your user profile for future orders.
+              </p>
+            </div>
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPhoneModalOpen(false)}
+                disabled={savingPhone}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={savingPhone} className="gap-1.5 font-bold">
+                {savingPhone ? "Saving..." : "Save Phone & Place Order"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

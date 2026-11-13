@@ -1,25 +1,35 @@
-import { cn } from "cn"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Link, useNavigate } from "react-router-dom"
-import { useState } from "react"
-import { auth, provider, db } from "@/firebase/fb"
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"
-import { toast } from "@/components/ui/toast"
+import { cn } from "cn";
+
+const ADMIN_UID = "TupK2gYT3tg9ZMCtpDLjPavLVgE2";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { auth } from "@/firebase/fb";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { toast } from "@/components/ui/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { KeyRound, Mail, CheckCircle2, RefreshCw } from "lucide-react";
 
 function getAuthError(code: string): string {
   const map: Record<string, string> = {
     "auth/invalid-credential": "Invalid email or password.",
     "auth/user-not-found": "No account found with this email.",
     "auth/wrong-password": "Incorrect password.",
-    "auth/too-many-requests": "Too many attempts. Please try again later.",
+    "auth/invalid-email": "Please enter a valid email address.",
+    "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
     "auth/network-request-failed": "Network error. Check your connection.",
-    "auth/popup-closed-by-user": "Sign-in popup was closed.",
   };
-  return map[code] ?? `Sign-in error: ${code}`;
+  return map[code] ?? `Authentication error: ${code}`;
 }
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
@@ -27,33 +37,19 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      const res = await signInWithPopup(auth, provider);
-      // Save/merge user doc — after auth confirmed so rules pass
-      await setDoc(doc(db, "users", res.user.uid), {
-        uid: res.user.uid,
-        name: res.user.displayName ?? "",
-        email: res.user.email ?? "",
-        photoURL: res.user.photoURL ?? "",
-        createdAt: serverTimestamp(),
-      }, { merge: true });
-      navigate("/");
-    } catch (err: any) {
-      console.error(err);
-      toast.add({ title: "Google sign-in failed", description: getAuthError(err.code) });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Forgot Password modal state
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, form.email, form.password);
-      navigate("/");
+      const res = await signInWithEmailAndPassword(auth, form.email, form.password);
+      // Admin always goes to the admin dashboard
+      navigate(res.user.uid === ADMIN_UID ? "/Admin" : "/");
     } catch (err: any) {
       console.error(err);
       toast.add({ title: "Login failed", description: getAuthError(err.code) });
@@ -62,50 +58,90 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     }
   };
 
+  const openResetModal = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setResetEmail(form.email || "");
+    setResetSent(false);
+    setResetModalOpen(true);
+  };
+
+  const handleSendResetEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetEmail = resetEmail.trim();
+    if (!targetEmail || !targetEmail.includes("@")) {
+      toast.add({ title: "Invalid Email", description: "Please enter a valid email address." });
+      return;
+    }
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, targetEmail);
+      setResetSent(true);
+      toast.add({
+        title: "Reset Link Dispatched ✉️",
+        description: `Password reset link sent to ${targetEmail}. Please check your inbox.`,
+      });
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+      toast.add({
+        title: "Reset Request Failed",
+        description: getAuthError(err.code),
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Login with your Google account or email</CardDescription>
+          <CardDescription>Login with your email and password</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleEmailLogin}>
             <FieldGroup>
               <Field>
-                <Button variant="outline" type="button" onClick={handleGoogleLogin} disabled={loading} className="w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-                    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" fill="currentColor" />
-                  </svg>
-                  Continue with Google
-                </Button>
-              </Field>
-
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                Or continue with email
-              </FieldSeparator>
-
-              <Field>
                 <FieldLabel htmlFor="login-email">Email</FieldLabel>
-                <Input id="login-email" type="email" placeholder="m@example.com" required
-                  onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
               </Field>
 
               <Field>
-                <div className="flex items-center">
+                <div className="flex items-center justify-between">
                   <FieldLabel htmlFor="login-password">Password</FieldLabel>
-                  <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">Forgot password?</a>
+                  <button
+                    type="button"
+                    onClick={openResetModal}
+                    className="ml-auto text-xs sm:text-sm text-white hover:text-white/80 font-medium underline underline-offset-4 transition-colors cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
-                <Input id="login-password" type="password" required
-                  onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                <Input
+                  id="login-password"
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
               </Field>
 
               <Field>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full text-white font-bold" disabled={loading}>
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
-                <FieldDescription className="text-center">
-                  Don&apos;t have an account? <Link to="/Signup">Sign up</Link>
+                <FieldDescription className="text-center text-zinc-300">
+                  Don&apos;t have an account?{" "}
+                  <Link to="/Signup" className="text-white hover:underline font-semibold underline-offset-4 ml-1">
+                    Sign up
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -113,8 +149,101 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center text-xs">
-        By signing in, you agree to our <a href="#" className="underline">Terms</a> and <a href="#" className="underline">Privacy Policy</a>.
+        By signing in, you agree to our <a href="#" className="underline">Terms</a> and{" "}
+        <a href="#" className="underline">Privacy Policy</a>.
       </FieldDescription>
+
+      {/* ── FORGOT PASSWORD DIALOG ── */}
+      <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Reset Your Password
+            </DialogTitle>
+            <DialogDescription>
+              {resetSent
+                ? "Password reset instructions have been dispatched to your email."
+                : "Enter your registered email address and we'll send you a secure link to reset your password."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {resetSent ? (
+            <div className="space-y-4 py-2">
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-800 dark:text-emerald-300 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-sm">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Reset link sent!</span>
+                </div>
+                <p className="text-xs leading-relaxed text-emerald-900/90 dark:text-emerald-200">
+                  We've sent an email to <strong>{resetEmail}</strong> with a secure link to create a new password.
+                </p>
+                <p className="text-[11px] opacity-80 pt-1">
+                  💡 Didn't receive it? Check your spam/junk folder, or wait a minute and click resend below.
+                </p>
+              </div>
+
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSendResetEmail}
+                  disabled={resetLoading}
+                  className="gap-1.5 text-xs w-full sm:w-auto"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${resetLoading ? "animate-spin" : ""}`} />
+                  Resend Link
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setResetModalOpen(false)}
+                  className="text-xs w-full sm:w-auto text-white font-bold"
+                >
+                  Back to Sign In
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <form onSubmit={handleSendResetEmail} className="space-y-4 pt-1">
+              <div className="space-y-2">
+                <FieldLabel htmlFor="reset-email">Account Email</FieldLabel>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    required
+                    placeholder="m@example.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="pl-9"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResetModalOpen(false)}
+                  disabled={resetLoading}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full sm:w-auto gap-1.5 font-semibold text-white"
+                >
+                  {resetLoading ? "Sending link..." : "Send Reset Link"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

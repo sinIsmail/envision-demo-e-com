@@ -1,19 +1,24 @@
-
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from '../firebase/fb'
-import ProductCard from "./ProductHomeList";
+import { db } from "../firebase/fb";
 import Navbar from "@/components/Navbar";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { DefaultClassicLayout } from "@/components/layouts/DefaultClassicLayout";
+import { UrbanChicLayout } from "@/components/layouts/UrbanChicLayout";
+import { NeoLuxeLayout } from "@/components/layouts/NeoLuxeLayout";
+import { AuraModernLayout } from "@/components/layouts/AuraModernLayout";
+import type { Product } from "@/types/product";
 
-function Products() {
-  const [products, setProducts] = useState<any[]>([]);
+function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { settings } = useSiteSettings();
 
   const getProducts = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "products"));
       const productData = querySnapshot.docs.map((doc) => ({
-        ...doc.data(),
+        ...(doc.data() as Product),
         id: doc.id,
       }));
       setProducts(productData);
@@ -24,7 +29,9 @@ function Products() {
     }
   };
 
-  useEffect(() => { getProducts(); }, []);
+  useEffect(() => {
+    getProducts();
+  }, []);
 
   if (loading) {
     return (
@@ -37,23 +44,22 @@ function Products() {
     );
   }
 
+  const activeLayout = settings.storeLayout ?? "aura-modern";
+
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl font-bold tracking-tight sm:text-3xl">All Products</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{products.length} items</p>
-        </div>
-        {/* 2 cols on mobile, 3 on md, 4 on lg */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </main>
+      {activeLayout === "urban-chic" ? (
+        <UrbanChicLayout products={products} />
+      ) : activeLayout === "neo-luxe" ? (
+        <NeoLuxeLayout products={products} />
+      ) : activeLayout === "default" ? (
+        <DefaultClassicLayout products={products} />
+      ) : (
+        <AuraModernLayout products={products} />
+      )}
     </>
   );
 }
 
-export default Products;
+export default Home;

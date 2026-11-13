@@ -15,39 +15,67 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    // ── Products ─────────────────────────────────────────────────────────────
-    // Anyone can browse products; only admin can add / delete
-    match /products/{productId} {
+    // ── Site Settings ────────────────────────────────────────────────────────
+    // Anyone can read (branding visible to all); only admin can write
+    match /siteSettings/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
+    // ── Products ─────────────────────────────────────────────────────────────
+    // Anyone can browse; only admin can create/delete.
+    // Signed-in users can update ONLY the fields touched by a purchase
+    // (stock, unitVariants) or a review (avgRating, reviewCount).
+    // Admins can update anything.
+    match /products/{productId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['avgRating', 'reviewCount', 'stock', 'unitVariants'])
+      );
+
+      // ── Reviews (subcollection) ───────────────────────────────────────────
+      // Anyone can read reviews; signed-in users can write their own
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isSignedIn()
+          && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isSignedIn()
+          && resource.data.userId == request.auth.uid;
+      }
+    }
+
     // ── Users ────────────────────────────────────────────────────────────────
-    // Each user can read & write only their own doc; admin can read all
+    // Each user reads & writes only their own doc; admin can read and delete all
     match /users/{userId} {
       allow read:  if isAdmin() || isOwner(userId);
-      allow write: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+      allow delete: if isAdmin() || isOwner(userId);
     }
 
     // ── Cart ─────────────────────────────────────────────────────────────────
-    // Strictly per-user; admin does not need cart access
+    // Strictly per-user; admin can delete when cleaning up user data
     match /cart/{userId}/items/{itemId} {
       allow read, write: if isOwner(userId);
+      allow delete: if isAdmin();
     }
 
     // ── Orders ───────────────────────────────────────────────────────────────
-    // Users can create orders and read their own; admin can read ALL orders
+    // Users can create their own orders and read them; admin can read ALL
     match /orders/{orderId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow read:   if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      // Only admin can update / delete orders (e.g. status changes)
+      // Only admin can update / delete (e.g. status changes)
       allow update, delete: if isAdmin();
     }
 
     // ── Addresses ────────────────────────────────────────────────────────────
-    // Strictly per-user; admin does not need address access
+    // Strictly per-user; admin can delete when removing users
     match /users/{userId}/addresses/{addressId} {
       allow read, write: if isOwner(userId);
+      allow delete: if isAdmin();
     }
 
   }

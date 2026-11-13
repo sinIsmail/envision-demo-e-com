@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "envision-demo-com"
-  }
+    "default": "envision-demo-com",
+    "production": "envision-demo-com"
+  },
+  "targets": {},
+  "etags": {}
 }

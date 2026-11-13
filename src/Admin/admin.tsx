@@ -1,458 +1,90 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { auth } from "../firebase/fb";
+import { auth, db } from "../firebase/fb";
 import { useAuth } from "@/context/AuthContext";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ImageURL from "@/components/imageUrl";
-
+import { Card } from "@/components/ui/card";
+import { collection, getDocs } from "firebase/firestore";
 import {
-  collection,
-  addDoc,
-  getCountFromServer,
-  getDocs,
-  deleteDoc,
-  doc,
-  query,
-  orderBy,
-  where,
-  Timestamp,
-} from "firebase/firestore";
+  Package,
+  AlertTriangle,
+  ShoppingBag,
+  TrendingUp,
+  Store,
+  LogOut,
+  Layers,
+  Users,
+  Settings as SettingsIcon,
+  Code,
+} from "lucide-react";
 
-import { db } from "../firebase/fb";
-import { toast } from "@/components/ui/toast";
+import { ProductsTab } from "./tabs/ProductsTab";
+import { InventoryTab } from "./tabs/InventoryTab";
+import { UsersTab } from "./tabs/UsersTab";
+import { OrdersTab } from "./tabs/OrdersTab";
+import { SiteSettingsTab } from "./tabs/SiteSettingsTab";
+import { DeveloperTab } from "./tabs/DeveloperTab";
 
-// ---------- XLSX export (lazy import) ----------
-async function exportToExcel(rows: any[], filename: string) {
-  const XLSX = await import("xlsx");
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Orders");
-  XLSX.writeFile(wb, filename);
-}
-
-// =============================================
-// TAB 1 — ADD PRODUCT
-// =============================================
-function ProductsTab() {
-  const [product, setProduct] = useState({
-    proName: "",
-    proPrice: "",
-    proStock: "",
-    proDescription: "",
-  });
-  const [loading, setLoading] = useState(false);
-  const [imgURL, setImgURL] = useState("");
-  const [products, setProducts] = useState<any[]>([]);
-  const [deleting, setDeleting] = useState<string | null>(null);
-
-  const fetchProducts = async () => {
-    const snap = await getDocs(collection(db, "products"));
-    setProducts(snap.docs.map((d) => ({ docId: d.id, ...d.data() })));
-  };
-
-  useEffect(() => { fetchProducts(); }, []);
-
-  const addProductHandler = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!imgURL) {
-      toast.add({ title: "Image required", description: "Please select a product image." });
-      return;
-    }
-    try {
-      setLoading(true);
-      const productCollection = collection(db, "products");
-      const snapshot = await getCountFromServer(productCollection);
-      const generatedId = String(snapshot.data().count + 1).padStart(2, "0");
-
-      await addDoc(productCollection, {
-        id: generatedId,
-        name: product.proName,
-        price: Number(product.proPrice),
-        stock: Number(product.proStock),
-        description: product.proDescription,
-        image: imgURL,
-      });
-
-      setProduct({ proName: "", proPrice: "", proStock: "", proDescription: "" });
-      setImgURL("");
-      toast.add({ title: "Product added", description: `Product ${generatedId} published.` });
-      fetchProducts();
-    } catch (error) {
-      console.error(error);
-      toast.add({ title: "Upload failed", description: "Something went wrong." });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteProduct = async (docId: string) => {
-    try {
-      setDeleting(docId);
-      await deleteDoc(doc(db, "products", docId));
-      setProducts((prev) => prev.filter((p) => p.docId !== docId));
-      toast.add({ title: "Deleted", description: "Product removed." });
-    } catch (error) {
-      console.error(error);
-      toast.add({ title: "Delete failed", description: "Could not delete product." });
-    } finally {
-      setDeleting(null);
-    }
-  };
-
-  return (
-    <div className="grid gap-8 lg:grid-cols-2">
-
-      {/* ADD FORM */}
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Add New Product</CardTitle>
-          <CardDescription>Upload and publish directly to Firestore.</CardDescription>
-        </CardHeader>
-        <form onSubmit={addProductHandler}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Product Name</Label>
-              <Input id="name" placeholder="e.g. Wireless Keyboard" value={product.proName}
-                onChange={(e) => setProduct({ ...product, proName: e.target.value })}
-                disabled={loading} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" placeholder="Key features..." value={product.proDescription}
-                onChange={(e) => setProduct({ ...product, proDescription: e.target.value })}
-                disabled={loading} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (₹)</Label>
-                <Input id="price" type="number" step="0.01" min="0" placeholder="0.00"
-                  value={product.proPrice}
-                  onChange={(e) => setProduct({ ...product, proPrice: e.target.value })}
-                  disabled={loading} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
-                <Input id="stock" type="number" min="0" placeholder="0"
-                  value={product.proStock}
-                  onChange={(e) => setProduct({ ...product, proStock: e.target.value })}
-                  disabled={loading} required />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Product Image</Label>
-              <ImageURL onSelectImg={(file) => setImgURL(file)} />
-              {imgURL && <p className="break-all text-xs text-muted-foreground">{imgURL}</p>}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Publishing..." : "Upload Product"}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-
-      {/* PRODUCT LIST */}
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">All Products</CardTitle>
-          <CardDescription>{products.length} product(s) in store</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-            {products.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">No products yet.</p>
-            )}
-            {products.map((p) => (
-              <div key={p.docId} className="flex items-center gap-4 rounded-lg border p-3">
-                <img src={p.image} alt={p.name} className="h-14 w-14 rounded-md object-cover shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{p.name}</p>
-                  <p className="text-sm text-muted-foreground">₹{Number(p.price).toLocaleString("en-IN")} · Stock: {p.stock}</p>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={deleting === p.docId}
-                  onClick={() => deleteProduct(p.docId)}
-                >
-                  {deleting === p.docId ? "..." : "Delete"}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-    </div>
-  );
-}
-
-// =============================================
-// TAB 2 — USERS
-// =============================================
-function UsersTab() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const snap = await getDocs(collection(db, "users"));
-        setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (err: any) {
-        console.error(err);
-        if (err.code === "permission-denied") {
-          setError("permission-denied");
-        } else {
-          setError("unknown");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
-  }, []);
-
-  if (loading) return (
-    <div className="flex justify-center p-8">
-      <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-    </div>
-  );
-
-  if (error === "permission-denied") {
-    return (
-      <Card className="shadow-md">
-        <CardContent className="py-10 text-center space-y-3">
-          <p className="text-lg font-semibold text-destructive">⚠ Permission Denied</p>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Firestore rules are blocking this read. Go to{" "}
-            <strong>Firebase Console → Firestore → Rules</strong> and set:
-          </p>
-          <pre className="mx-auto max-w-md rounded-md bg-muted p-3 text-left text-xs text-muted-foreground whitespace-pre-wrap">
-{`match /users/{userId} {
-  allow read: if request.auth != null;
-  allow write: if request.auth != null
-    && request.auth.uid == userId;
-}`}
-          </pre>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="shadow-md">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Registered Users</CardTitle>
-        <CardDescription>
-          {users.length} user(s) total
-          {users.length === 0 && " — Users appear here when they sign up or log in."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="pb-3 pr-4 font-medium">#</th>
-                <th className="pb-3 pr-4 font-medium">Name</th>
-                <th className="pb-3 pr-4 font-medium">Email</th>
-                <th className="pb-3 font-medium">Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length === 0 && (
-                <tr><td colSpan={4} className="py-10 text-center text-muted-foreground">
-                  No users yet. Users are saved automatically when they sign up or log in.
-                </td></tr>
-              )}
-              {users.map((u, i) => (
-                <tr key={u.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
-                  <td className="py-3 pr-4 text-muted-foreground">{i + 1}</td>
-                  <td className="py-3 pr-4 font-medium">{u.name || "—"}</td>
-                  <td className="py-3 pr-4">{u.email || "—"}</td>
-                  <td className="py-3 text-muted-foreground">
-                    {u.createdAt?.toDate
-                      ? u.createdAt.toDate().toLocaleDateString("en-IN")
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// =============================================
-// TAB 3 — ORDERS
-
-// =============================================
-type DateFilter = "today" | "7days" | "all";
-
-function OrdersTab() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<DateFilter>("all");
-
-  const fetchOrders = async (f: DateFilter) => {
-    setLoading(true);
-    try {
-      let q;
-      const col = collection(db, "orders");
-
-      if (f === "today") {
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-        q = query(col, where("createdAt", ">=", Timestamp.fromDate(start)), orderBy("createdAt", "desc"));
-      } else if (f === "7days") {
-        const start = new Date();
-        start.setDate(start.getDate() - 7);
-        start.setHours(0, 0, 0, 0);
-        q = query(col, where("createdAt", ">=", Timestamp.fromDate(start)), orderBy("createdAt", "desc"));
-      } else {
-        q = query(col, orderBy("createdAt", "desc"));
-      }
-
-      const snap = await getDocs(q);
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (err) {
-      console.error(err);
-      toast.add({ title: "Error", description: "Could not load orders." });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchOrders(filter); }, [filter]);
-
-  const handleExport = async () => {
-    const rows = orders.map((o, i) => ({
-      "#": i + 1,
-      "Order ID": o.id,
-      "Customer": o.userName || o.userEmail || "—",
-      "Email": o.userEmail || "—",
-      "Items": (o.items ?? []).map((it: any) => `${it.name} x${it.quantity}`).join(", "),
-      "Subtotal (₹)": o.subtotal ?? 0,
-      "Shipping (₹)": o.shipping ?? 0,
-      "Total (₹)": o.total ?? 0,
-      "Date": o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString("en-IN") : "—",
-    }));
-    const today = new Date().toISOString().slice(0, 10);
-    await exportToExcel(rows, `orders-${filter}-${today}.xlsx`);
-    toast.add({ title: "Downloaded", description: `orders-${filter}-${today}.xlsx` });
-  };
-
-  const filterLabel: Record<DateFilter, string> = {
-    today: "Today",
-    "7days": "Last 7 Days",
-    all: "All Time",
-  };
-
-  return (
-    <Card className="shadow-md">
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-2xl font-bold">Orders</CardTitle>
-            <CardDescription>{orders.length} order(s) · {filterLabel[filter]}</CardDescription>
-          </div>
-
-          {/* Filter Buttons */}
-          <div className="flex gap-2">
-            {(["today", "7days", "all"] as DateFilter[]).map((f) => (
-              <Button
-                key={f}
-                variant={filter === f ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter(f)}
-              >
-                {filterLabel[f]}
-              </Button>
-            ))}
-          </div>
-
-          {/* Export Button */}
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={orders.length === 0}>
-            ⬇ Export Excel
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        {loading ? (
-          <p className="py-8 text-center text-muted-foreground">Loading orders...</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-3 pr-4 font-medium">#</th>
-                  <th className="pb-3 pr-4 font-medium">Customer</th>
-                  <th className="pb-3 pr-4 font-medium">Items</th>
-                  <th className="pb-3 pr-4 font-medium text-right">Total</th>
-                  <th className="pb-3 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.length === 0 && (
-                  <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No orders found.</td></tr>
-                )}
-                {orders.map((o, i) => (
-                  <tr key={o.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
-                    <td className="py-3 pr-4 text-muted-foreground">{i + 1}</td>
-                    <td className="py-3 pr-4">
-                      <p className="font-medium">{o.userName || "—"}</p>
-                      <p className="text-xs text-muted-foreground">{o.userEmail || ""}</p>
-                    </td>
-                    <td className="py-3 pr-4 max-w-[200px]">
-                      <p className="truncate text-muted-foreground text-xs">
-                        {(o.items ?? []).map((it: any) => `${it.name} ×${it.quantity}`).join(", ")}
-                      </p>
-                    </td>
-                    <td className="py-3 pr-4 text-right font-semibold">
-                      ₹{Number(o.total ?? 0).toLocaleString("en-IN")}
-                    </td>
-                    <td className="py-3 text-muted-foreground whitespace-nowrap">
-                      {o.createdAt?.toDate
-                        ? o.createdAt.toDate().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// =============================================
-// ROOT ADMIN PAGE
-// =============================================
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { settings } = useSiteSettings();
+  const [activeTab, setActiveTab] = useState("products");
+
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    lowStockCount: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    loading: true,
+  });
+
+  const loadStats = async () => {
+    try {
+      const [prodSnap, orderSnap] = await Promise.all([
+        getDocs(collection(db, "products")),
+        getDocs(collection(db, "orders")),
+      ]);
+
+      let lowCount = 0;
+      prodSnap.docs.forEach((d) => {
+        const data = d.data();
+        const stock =
+          data.hasVariants && data.unitVariants
+            ? data.unitVariants.reduce(
+                (sum: number, v: any) => sum + (Number(v.stock) || 0),
+                0
+              )
+            : Number(data.stock) || 0;
+        if (stock < 5) lowCount++;
+      });
+
+      let revenue = 0;
+      orderSnap.docs.forEach((d) => {
+        const data = d.data();
+        if (data.status !== "cancelled") {
+          revenue += Number(data.total) || 0;
+        }
+      });
+
+      setStats({
+        totalProducts: prodSnap.size,
+        lowStockCount: lowCount,
+        totalOrders: orderSnap.size,
+        totalRevenue: revenue,
+        loading: false,
+      });
+    } catch (err) {
+      console.warn("Could not load stats:", err);
+      setStats((p) => ({ ...p, loading: false }));
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
+  }, [activeTab]);
 
   const handleSignout = async () => {
     await signOut(auth);
@@ -462,62 +94,202 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-
       {/* ADMIN HEADER */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <span className="text-xl font-bold tracking-tight">
-            Shop<span className="text-primary">.</span>
-            <span className="ml-2 text-sm font-normal text-muted-foreground">Admin</span>
-          </span>
+          <div className="flex items-center gap-3">
+            {settings.logoUrl ? (
+              <img
+                src={settings.logoUrl}
+                alt={settings.brandName}
+                className="h-8 w-auto object-contain rounded"
+              />
+            ) : null}
+            <span className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              {settings.brandName || "Shop."}
+              <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                Admin
+              </span>
+            </span>
+          </div>
+
           <div className="flex items-center gap-3">
             {user?.email && (
-              <span className="hidden text-xs text-muted-foreground sm:block">
+              <span className="hidden text-xs text-muted-foreground md:block">
                 {user.email}
               </span>
             )}
             <button
               onClick={() => navigate("/")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
             >
-              ← Back to Store
+              <Store className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to</span> Store
             </button>
             <button
               onClick={handleSignout}
-              className="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
+              className="rounded-lg bg-destructive px-3 py-1.5 text-xs sm:text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors flex items-center gap-1.5"
             >
-              Sign Out
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign</span> Out
             </button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl p-6">
-
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="mt-1 text-muted-foreground">Manage products, users, and orders</p>
+      <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Page Heading */}
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Admin Operations Center
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Manage inventory, add stock, update product photos, and fulfill orders.
+            </p>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="products">
-          <TabsList className="mb-6">
-            <TabsTrigger value="products">📦 Products</TabsTrigger>
-            <TabsTrigger value="users">👥 Users</TabsTrigger>
-            <TabsTrigger value="orders">🧾 Orders</TabsTrigger>
-          </TabsList>
+        {/* Executive KPI Overview Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Card 1: Total Products */}
+          <Card
+            onClick={() => setActiveTab("products")}
+            className="cursor-pointer hover:border-primary/50 transition-all p-4 shadow-sm bg-card hover:shadow-md"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Catalog Products</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Package className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold tracking-tight text-foreground">
+                {stats.loading ? "..." : stats.totalProducts}
+              </span>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Active catalog items</p>
+            </div>
+          </Card>
+
+          {/* Card 2: Stock Alerts (Clickable to jump to inventory) */}
+          <Card
+            onClick={() => setActiveTab("inventory")}
+            className={`cursor-pointer transition-all p-4 shadow-sm bg-card hover:shadow-md border ${
+              stats.lowStockCount > 0
+                ? "border-amber-300/80 bg-amber-50/10 dark:border-amber-900/50 hover:border-amber-400"
+                : "hover:border-primary/50"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Stock Alerts</span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                stats.lowStockCount > 0 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" : "bg-muted text-muted-foreground"
+              }`}>
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className={`text-2xl font-bold tracking-tight ${stats.lowStockCount > 0 ? "text-amber-700 dark:text-amber-400" : "text-foreground"}`}>
+                {stats.loading ? "..." : stats.lowStockCount}
+              </span>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {stats.lowStockCount > 0 ? "Items need restocking" : "All stocks healthy"}
+              </p>
+            </div>
+          </Card>
+
+          {/* Card 3: Total Orders */}
+          <Card
+            onClick={() => setActiveTab("orders")}
+            className="cursor-pointer hover:border-primary/50 transition-all p-4 shadow-sm bg-card hover:shadow-md"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Orders Count</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
+                <ShoppingBag className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold tracking-tight text-foreground">
+                {stats.loading ? "..." : stats.totalOrders}
+              </span>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Customer orders recorded</p>
+            </div>
+          </Card>
+
+          {/* Card 4: Store Revenue */}
+          <Card
+            onClick={() => setActiveTab("orders")}
+            className="cursor-pointer hover:border-primary/50 transition-all p-4 shadow-sm bg-card hover:shadow-md"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Revenue Generated</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                <TrendingUp className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold tracking-tight text-foreground truncate block">
+                {stats.loading ? "..." : `₹${stats.totalRevenue.toLocaleString("en-IN")}`}
+              </span>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Excludes cancelled orders</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Main Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <div className="overflow-x-auto pb-1">
+            <TabsList className="flex w-max min-w-full sm:w-auto sm:min-w-0 p-1 bg-muted/60">
+              <TabsTrigger value="products" className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Layers className="h-4 w-4" />
+                Products & Catalog
+              </TabsTrigger>
+              <TabsTrigger value="inventory" className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Package className="h-4 w-4" />
+                ⚡ Quick Stock & Inventory
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="text-xs sm:text-sm flex items-center gap-1.5">
+                <ShoppingBag className="h-4 w-4" />
+                Orders & Delivery
+              </TabsTrigger>
+              <TabsTrigger value="users" className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Users className="h-4 w-4" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs sm:text-sm flex items-center gap-1.5">
+                <SettingsIcon className="h-4 w-4" />
+                Store Settings
+              </TabsTrigger>
+              <TabsTrigger value="developer" className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Code className="h-4 w-4" />
+                Developer & API
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="products">
             <ProductsTab />
+          </TabsContent>
+
+          <TabsContent value="inventory">
+            <InventoryTab />
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <OrdersTab />
           </TabsContent>
 
           <TabsContent value="users">
             <UsersTab />
           </TabsContent>
 
-          <TabsContent value="orders">
-            <OrdersTab />
+          <TabsContent value="settings">
+            <SiteSettingsTab />
+          </TabsContent>
+
+          <TabsContent value="developer">
+            <DeveloperTab />
           </TabsContent>
         </Tabs>
       </div>

@@ -1,6 +1,9 @@
 export type LocalCartItem = {
   id: string;
+  productId?: string;
   quantity: number;
+  variantLabel?: string;
+  price?: number;
 };
 
 export const GUEST_CART_KEY = "cart";
@@ -18,7 +21,10 @@ export function readLocalCart(): LocalCartItem[] {
     return parsed
       .map((item) => ({
         id: String(item?.id ?? ""),
+        productId: String(item?.productId ?? item?.id ?? ""),
         quantity: Math.max(1, Number(item?.quantity ?? 1)),
+        variantLabel: item?.variantLabel ? String(item.variantLabel) : undefined,
+        price: item?.price !== undefined ? Number(item.price) : undefined,
       }))
       .filter((item) => item.id);
   } catch (error) {
@@ -39,46 +45,51 @@ export function writeLocalCart(items: LocalCartItem[]) {
   );
 }
 
-export function addToLocalCart(productId: string) {
+export function addToLocalCart(productId: string, variantLabel?: string, price?: number, qty: number = 1) {
   const cart = readLocalCart();
+  const id = variantLabel ? `${productId}_${variantLabel}` : String(productId);
 
   const existing = cart.find(
-    (item) => item.id === String(productId)
+    (item) => item.id === id
   );
 
+  const addCount = Math.max(1, qty);
   if (existing) {
-    existing.quantity += 1;
+    existing.quantity += addCount;
   } else {
     cart.push({
-      id: String(productId),
-      quantity: 1,
+      id,
+      productId: String(productId),
+      quantity: addCount,
+      variantLabel,
+      price,
     });
   }
 
   writeLocalCart(cart);
 }
 
-export function removeFromLocalCart(productId: string) {
+export function removeFromLocalCart(itemId: string) {
   const cart = readLocalCart().filter(
-    (item) => item.id !== String(productId)
+    (item) => item.id !== String(itemId) && item.productId !== String(itemId)
   );
 
   writeLocalCart(cart);
 }
 
 export function updateLocalCartQuantity(
-  productId: string,
+  itemId: string,
   quantity: number
 ) {
   if (quantity <= 0) {
-    removeFromLocalCart(productId);
+    removeFromLocalCart(itemId);
     return;
   }
 
   const cart = readLocalCart();
 
   const existing = cart.find(
-    (item) => item.id === String(productId)
+    (item) => item.id === String(itemId)
   );
 
   if (existing) {
@@ -90,4 +101,4 @@ export function updateLocalCartQuantity(
 
 export function clearLocalCart() {
   localStorage.removeItem(GUEST_CART_KEY);
-}
+}

@@ -4,8 +4,8 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input"
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { auth, provider, db } from "@/firebase/fb"
-import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
+import { auth, db } from "@/firebase/fb"
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { toast } from "@/components/ui/toast"
 
@@ -16,18 +16,18 @@ function getAuthError(code: string): string {
     "auth/invalid-email": "Please enter a valid email address.",
     "auth/too-many-requests": "Too many attempts. Please try again later.",
     "auth/network-request-failed": "Network error. Check your connection.",
-    "auth/popup-closed-by-user": "Sign-in popup was closed.",
   };
   return map[code] ?? `Error: ${code}`;
 }
 
 // Save user to Firestore after auth is confirmed
-async function saveUserToFirestore(uid: string, name: string, email: string, photoURL: string = "") {
+async function saveUserToFirestore(uid: string, name: string, email: string, phone: string, photoURL: string = "") {
   try {
     await setDoc(doc(db, "users", uid), {
       uid,
       name,
       email,
+      phone,
       photoURL,
       createdAt: serverTimestamp(),
     }, { merge: true });
@@ -41,7 +41,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [passwordErr, setPasswordErr] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "", confpassword: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confpassword: "" });
 
   useEffect(() => {
     if (form.confpassword && form.confpassword !== form.password) {
@@ -62,33 +62,12 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       const res = await createUserWithEmailAndPassword(auth, form.email, form.password);
       await updateProfile(res.user, { displayName: form.name });
       // Auth is now confirmed — safe to write to Firestore
-      await saveUserToFirestore(res.user.uid, form.name, form.email);
+      await saveUserToFirestore(res.user.uid, form.name, form.email, form.phone);
       toast.add({ title: "Account created!", description: "Welcome to the store." });
       navigate("/");
     } catch (err: any) {
       console.error(err);
       toast.add({ title: "Sign up failed", description: getAuthError(err.code) });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignup = async () => {
-    try {
-      setLoading(true);
-      const res = await signInWithPopup(auth, provider);
-      // Auth confirmed — safe to write to Firestore
-      await saveUserToFirestore(
-        res.user.uid,
-        res.user.displayName ?? "",
-        res.user.email ?? "",
-        res.user.photoURL ?? ""
-      );
-      toast.add({ title: "Welcome!", description: "Signed in with Google." });
-      navigate("/");
-    } catch (err: any) {
-      console.error(err);
-      toast.add({ title: "Google sign-in failed", description: getAuthError(err.code) });
     } finally {
       setLoading(false);
     }
@@ -117,6 +96,13 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             </Field>
 
             <Field>
+              <FieldLabel htmlFor="signup-phone">Phone Number</FieldLabel>
+              <Input id="signup-phone" type="tel" placeholder="+1 234 567 8900" required
+                onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <FieldDescription>Used for order updates and support.</FieldDescription>
+            </Field>
+
+            <Field>
               <FieldLabel htmlFor="signup-password">Password</FieldLabel>
               <Input id="signup-password" type="password" required
                 onChange={(e) => setForm({ ...form, password: e.target.value })} />
@@ -136,17 +122,14 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
             <FieldGroup>
               <Field>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full text-white font-bold" disabled={loading}>
                   {loading ? "Creating account..." : "Create Account"}
                 </Button>
-                <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignup} disabled={loading}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-                    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" fill="currentColor" />
-                  </svg>
-                  Sign up with Google
-                </Button>
-                <FieldDescription className="text-center">
-                  Already have an account? <Link to="/Login">Sign in</Link>
+                <FieldDescription className="text-center text-zinc-300">
+                  Already have an account?{" "}
+                  <Link to="/Login" className="text-white hover:underline font-semibold underline-offset-4 ml-1">
+                    Sign in
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>

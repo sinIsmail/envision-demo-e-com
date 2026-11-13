@@ -2,14 +2,16 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 // Admin is identified by UID — cannot be spoofed unlike email
-const ADMIN_UID = "TupK2gYT3tg9ZMCtpDLjPavLVgE2";
+export const ADMIN_UID = "TupK2gYT3tg9ZMCtpDLjPavLVgE2";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   adminOnly?: boolean;
+  /** Pass true on any route that should be inaccessible to the admin account */
+  userOnly?: boolean;
 }
 
-function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
+function ProtectedRoute({ children, adminOnly = false, userOnly = false }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
 
   // Wait for Firebase to resolve auth state before deciding
@@ -23,10 +25,13 @@ function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
 
   if (!user) return <Navigate to="/Login" replace />;
 
+  const isAdmin = user.uid === ADMIN_UID;
+
   // Admin-only guard — redirect non-admins to home
-  if (adminOnly && user.uid !== ADMIN_UID) {
-    return <Navigate to="/" replace />;
-  }
+  if (adminOnly && !isAdmin) return <Navigate to="/" replace />;
+
+  // User-only guard — redirect admin to their dashboard
+  if (userOnly && isAdmin) return <Navigate to="/Admin" replace />;
 
   return <>{children}</>;
 }
