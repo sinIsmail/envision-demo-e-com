@@ -873,29 +873,9 @@ function Cart() {
       let placedOrderNumber = 1;
       let placedOrderSeqId = "01";
 
-      // ── Atomic transaction: verify stock & decrement ──────────────────────
+      // ── Atomic transaction: verify stock, increment counter & place order ───
       await runTransaction(db, async (tx) => {
-        // Atomic sequential order numbering via metadata/orders
-        let nextSeq = 1;
-        const counterRef = doc(db, "metadata", "orders");
-        try {
-          const counterSnap = await tx.get(counterRef);
-          if (counterSnap.exists()) {
-            const raw = counterSnap.data().lastOrderNumber;
-            nextSeq = (typeof raw === "number" ? raw : Number(raw) || 0) + 1;
-          } else {
-            nextSeq = 1;
-          }
-        } catch {
-          nextSeq = 1;
-        }
-        tx.set(counterRef, { lastOrderNumber: nextSeq }, { merge: true });
-
-        const formattedSeqId = String(nextSeq).padStart(2, "0");
-        placedOrderNumber = nextSeq;
-        placedOrderSeqId = formattedSeqId;
-        // Group cart items by productId so we only read each product doc once.
-        // Key: productId → list of { variantLabel?, quantity }
+        // Group cart items by productId so we know which products to read
         type LineItem = { variantLabel?: string; quantity: number; name: string };
         const linesByProduct = new Map<string, LineItem[]>();
         for (const item of cartData) {
@@ -903,12 +883,33 @@ function Cart() {
           lines.push({ variantLabel: item.variantLabel, quantity: item.quantity, name: item.name });
           linesByProduct.set(item.productId, lines);
         }
-
-        // Fetch all unique product docs inside the transaction
         const productIds = Array.from(linesByProduct.keys());
-        const productSnaps = await Promise.all(
-          productIds.map((id) => tx.get(doc(db, "products", id)))
-        );
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STEP 1: ALL READS MUST OCCUR FIRST BEFORE ANY WRITES (FIRESTORE RULE)
+        // ══════════════════════════════════════════════════════════════════════
+        const counterRef = doc(db, "metadata", "orders");
+        const [counterSnap, ...productSnaps] = await Promise.all([
+          tx.get(counterRef),
+          ...productIds.map((id) => tx.get(doc(db, "products", id))),
+        ]);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STEP 2: PROCESS READ DATA & VALIDATE INVENTORY
+        // ══════════════════════════════════════════════════════════════════════
+        // Determine sequential order number
+        let nextSeq = 1;
+        if (counterSnap.exists()) {
+          const raw = counterSnap.data().lastOrderNumber;
+          nextSeq = (typeof raw === "number" ? raw : Number(raw) || 0) + 1;
+        }
+        const formattedSeqId = String(nextSeq).padStart(2, "0");
+        placedOrderNumber = nextSeq;
+        placedOrderSeqId = formattedSeqId;
+
+        // Verify stock and prepare product write updates
+        type ProductUpdate = { pid: string; data: any };
+        const productUpdates: ProductUpdate[] = [];
 
         for (let i = 0; i < productIds.length; i++) {
           const pid = productIds[i];
@@ -923,41 +924,38 @@ function Cart() {
           const data = snap.data() as any;
 
           if (data.hasVariants && Array.isArray(data.unitVariants)) {
-            // ── Variant product: check & decrement per-variant stock ──────────
+            // Variant product: check & decrement per-variant stock
             const updatedVariants: any[] = data.unitVariants.map((v: any) => ({ ...v }));
 
             for (const line of lines) {
-              if (!line.variantLabel) continue; // safety guard
-              const varIdx = updatedVariants.findIndex(
-                (v: any) => v.label === line.variantLabel
-              );
+              if (!line.variantLabel) continue;
+              const varIdx = updatedVariants.findIndex((v: any) => v.label === line.variantLabel);
               if (varIdx === -1) {
-                throw new Error(
-                  `Variant "${line.variantLabel}" of "${data.name}" was not found.`
-                );
+                throw new Error(`Variant "${line.variantLabel}" of "${data.name}" was not found.`);
               }
               const currentVariantStock = Number(updatedVariants[varIdx].stock ?? 0);
               if (currentVariantStock < line.quantity) {
                 throw new Error(
-                  `"${data.name} (${line.variantLabel})" only has ${currentVariantStock} in stock, ` +
-                  `but you ordered ${line.quantity}.`
+                  `"${data.name} (${line.variantLabel})" only has ${currentVariantStock} in stock, but you ordered ${line.quantity}.`
                 );
               }
               updatedVariants[varIdx].stock = currentVariantStock - line.quantity;
             }
 
-            // Recalculate the aggregate stock field (sum of all variants)
             const newTotalStock = updatedVariants.reduce(
               (sum: number, v: any) => sum + (Number(v.stock) || 0),
               0
             );
 
-            tx.update(doc(db, "products", pid), {
-              unitVariants: updatedVariants,
-              stock: newTotalStock,
+            productUpdates.push({
+              pid,
+              data: {
+                unitVariants: updatedVariants,
+                stock: newTotalStock,
+              },
             });
           } else {
-            // ── Plain product: check & decrement top-level stock ──────────────
+            // Plain product: check & decrement top-level stock
             const totalQty = lines.reduce((sum, l) => sum + l.quantity, 0);
             const currentStock = Number(data.stock ?? 0);
             if (currentStock < totalQty) {
@@ -965,20 +963,33 @@ function Cart() {
                 `"${data.name}" only has ${currentStock} in stock, but you ordered ${totalQty}.`
               );
             }
-            tx.update(doc(db, "products", pid), {
-              stock: currentStock - totalQty,
+            productUpdates.push({
+              pid,
+              data: {
+                stock: currentStock - totalQty,
+              },
             });
           }
         }
 
-        // Resolve customer email (selected address email, user email, or provider auth email)
+        // ══════════════════════════════════════════════════════════════════════
+        // STEP 3: ALL WRITES ARE EXECUTED AFTER ALL READS HAVE COMPLETED
+        // ══════════════════════════════════════════════════════════════════════
+        // 1. Write incremented sequential counter
+        tx.set(counterRef, { lastOrderNumber: nextSeq }, { merge: true });
+
+        // 2. Write product inventory stock updates
+        for (const update of productUpdates) {
+          tx.update(doc(db, "products", update.pid), update.data);
+        }
+
+        // 3. Write the order document
         const customerEmail =
           selectedAddress.email?.trim() ||
           user.email ||
           user.providerData?.find((p) => p.email)?.email ||
           "";
 
-        // Write the order document
         const orderRef = doc(collection(db, "orders"));
         placedOrderId = orderRef.id;
         tx.set(orderRef, {
