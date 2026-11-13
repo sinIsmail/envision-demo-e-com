@@ -64,6 +64,7 @@ type CartItem = {
   quantity: number;
   image: string;
   variantLabel?: string;
+  maxStock?: number;   // Live stock cap fetched from Firestore
 };
 
 type LocalCartItem = {
@@ -141,14 +142,14 @@ async function getProductsForCart(localItems: LocalCartItem[]): Promise<CartItem
   for (const localItem of localItems) {
     const productId = String(localItem.productId ?? localItem.id);
     let product = localMap.get(productId);
+    let maxStock: number | undefined;
 
-    if (!product) {
-      try {
-        const productSnap = await getDoc(doc(db, "products", productId));
+    try {
+      const productSnap = await getDoc(doc(db, "products", productId));
+      if (productSnap.exists()) {
+        const data = productSnap.data();
 
-        if (productSnap.exists()) {
-          const data = productSnap.data();
-
+        if (!product) {
           product = {
             id: productSnap.id,
             name: String(data.name ?? ""),
@@ -156,21 +157,31 @@ async function getProductsForCart(localItems: LocalCartItem[]): Promise<CartItem
             image: String(data.images?.[0] ?? data.image ?? data.imageUrl ?? ""),
           };
         }
-      } catch (error) {
-        console.error(`Could not load product ${productId}:`, error);
+
+        // Determine live stock for this item/variant
+        if (data.hasVariants && Array.isArray(data.unitVariants) && localItem.variantLabel) {
+          const variant = data.unitVariants.find((v: any) => v.label === localItem.variantLabel);
+          maxStock = variant ? Number(variant.stock ?? 0) : 0;
+        } else {
+          maxStock = Number(data.stock ?? 0);
+        }
       }
+    } catch (error) {
+      console.error(`Could not load product ${productId}:`, error);
     }
 
     if (product) {
       const itemPrice = localItem.price ?? product.price;
+      const cappedQty = maxStock !== undefined ? Math.min(localItem.quantity, Math.max(maxStock, 0)) : localItem.quantity;
       result.push({
         id: localItem.id,
         productId,
         name: product.name,
         price: itemPrice,
-        quantity: localItem.quantity,
+        quantity: Math.max(1, cappedQty),
         image: product.image,
         variantLabel: localItem.variantLabel,
+        maxStock,
       });
     }
   }
@@ -616,9 +627,9 @@ function Cart() {
           collection(db, "cart", user.uid, "items"),
         );
 
-        const items: CartItem[] = snap.docs.map((d) => {
+        // Fetch live stock for all cart items in parallel
+        const rawItems = snap.docs.map((d) => {
           const data = d.data();
-
           return {
             id: d.id,
             productId: String(data.productId ?? data.productid ?? d.id),
@@ -630,9 +641,61 @@ function Cart() {
           };
         });
 
+        // Fetch live stock for each unique product
+        const uniqueProductIds = [...new Set(rawItems.map((i) => i.productId))];
+        const stockMap = new Map<string, any>(); // productId -> full product data
+        await Promise.all(
+          uniqueProductIds.map(async (pid) => {
+            try {
+              const pSnap = await getDoc(doc(db, "products", pid));
+              if (pSnap.exists()) stockMap.set(pid, pSnap.data());
+            } catch {/* ignore */}
+          })
+        );
+
+        const items: CartItem[] = [];
+        const stockWarnings: string[] = [];
+
+        for (const raw of rawItems) {
+          const pData = stockMap.get(raw.productId);
+          let maxStock: number | undefined;
+
+          if (pData) {
+            if (pData.hasVariants && Array.isArray(pData.unitVariants) && raw.variantLabel) {
+              const v = pData.unitVariants.find((v: any) => v.label === raw.variantLabel);
+              maxStock = v ? Number(v.stock ?? 0) : 0;
+            } else {
+              maxStock = Number(pData.stock ?? 0);
+            }
+          }
+
+          let qty = raw.quantity;
+          if (maxStock !== undefined && qty > maxStock) {
+            if (maxStock === 0) {
+              // Out of stock — skip (or keep at 0 so user sees it)
+              stockWarnings.push(`"${raw.name}${raw.variantLabel ? ` (${raw.variantLabel})` : ""}" is out of stock and was removed from your cart.`);
+              // Remove from Firestore in background
+              deleteDoc(doc(db, "cart", user.uid, "items", raw.id)).catch(console.warn);
+              continue;
+            }
+            stockWarnings.push(`"${raw.name}${raw.variantLabel ? ` (${raw.variantLabel})` : ""}" quantity adjusted to ${maxStock} (only ${maxStock} in stock).`);
+            qty = maxStock;
+            // Update Firestore in background
+            updateDoc(doc(db, "cart", user.uid, "items", raw.id), { quantity: maxStock }).catch(console.warn);
+          }
+
+          items.push({ ...raw, quantity: qty, maxStock });
+        }
+
         if (!cancelled) {
           setCartData(items);
           setLoading(false);
+          // Show stock warnings after a brief delay
+          if (stockWarnings.length > 0) {
+            setTimeout(() => {
+              stockWarnings.forEach((msg) => toast.add({ title: "Stock updated", description: msg }));
+            }, 500);
+          }
         }
       } catch (error) {
         console.error("Cart load error:", error);
@@ -684,6 +747,15 @@ function Cart() {
     try {
       if (newQty <= 0) {
         await removeItem(item);
+        return;
+      }
+
+      // Enforce stock cap
+      if (item.maxStock !== undefined && newQty > item.maxStock) {
+        toast.add({
+          title: "Stock limit reached",
+          description: `Only ${item.maxStock} in stock for "${item.name}${item.variantLabel ? ` (${item.variantLabel})` : ""}".`,
+        });
         return;
       }
 
@@ -1305,28 +1377,37 @@ function Cart() {
                             </p>
 
                             <div className="mt-2 flex items-center justify-between">
-                              <div className="flex items-center rounded-full border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-0.5 shadow-2xs">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-                                  onClick={() => changeQty(item, -1)}
-                                >
-                                  <Minus className="h-3.5 w-3.5" />
-                                </Button>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center rounded-full border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-0.5 shadow-2xs">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                                    onClick={() => changeQty(item, -1)}
+                                  >
+                                    <Minus className="h-3.5 w-3.5" />
+                                  </Button>
 
-                                <div className="flex h-7 min-w-8 px-1 items-center justify-center text-xs font-semibold text-foreground">
-                                  {item.quantity}
+                                  <div className="flex h-7 min-w-8 px-1 items-center justify-center text-xs font-semibold text-foreground">
+                                    {item.quantity}
+                                  </div>
+
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    onClick={() => changeQty(item, 1)}
+                                    disabled={item.maxStock !== undefined && item.quantity >= item.maxStock}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </Button>
                                 </div>
-
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
-                                  onClick={() => changeQty(item, 1)}
-                                >
-                                  <Plus className="h-3.5 w-3.5" />
-                                </Button>
+                                {item.maxStock !== undefined && item.maxStock <= 5 && item.maxStock > 0 && (
+                                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3" />
+                                    Only {item.maxStock} left
+                                  </span>
+                                )}
                               </div>
 
                               <Button
