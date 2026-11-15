@@ -894,7 +894,7 @@ export function OrdersTab() {
           })),
           total: formatPrice(order.total, settings.currency, settings.currencyLocale),
           cancellationReason: "Cancelled by store administrator & inventory stock restored.",
-        })
+        }, settings)
           .then((res) => {
             if (res.success) {
               toast.add({

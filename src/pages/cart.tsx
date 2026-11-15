@@ -1189,7 +1189,7 @@ function Cart() {
             state: selectedAddress.state,
             pincode: selectedAddress.pincode,
           },
-        })
+        }, settings)
           .then((res) => {
             if (res.success) {
               console.info("[Email] Confirmation email sent successfully to", customerEmail);
