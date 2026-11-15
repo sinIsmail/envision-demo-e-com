@@ -83,7 +83,7 @@ async function exportToExcel(orders: Order[], filename: string) {
   // ═══════════════════════════════════════════════════════════════════════════
   const pickAndPackRows: Record<string, any>[] = [];
 
-  orders.forEach((o) => {
+  orders.forEach((o, orderIdx) => {
     const addr = o.deliveryAddress;
     const dateObj = o.createdAt?.toDate ? o.createdAt.toDate() : null;
     const dateStr = dateObj ? dateObj.toLocaleDateString("en-IN") : "—";
@@ -141,6 +141,29 @@ async function exportToExcel(orders: Order[], filename: string) {
         "Database Ref ID": o.id,
       });
     });
+
+    // Blank row gap between orders for effortless visual separation in Excel
+    if (orderIdx < orders.length - 1) {
+      pickAndPackRows.push({
+        "Order ID": "",
+        "Order Date": "",
+        "Order Time": "",
+        "Status": "",
+        "Item Name": "",
+        "Size / Variant": "",
+        "Pick Quantity": "",
+        "Unit Price (₹)": "",
+        "Line Total (₹)": "",
+        "Customer Name": "",
+        "Customer Phone": "",
+        "Delivery Pincode": "",
+        "City": "",
+        "State": "",
+        "Full Address": "",
+        "Order Total (₹)": "",
+        "Database Ref ID": "",
+      });
+    }
   });
 
   const wsBill = XLSX.utils.json_to_sheet(pickAndPackRows);
