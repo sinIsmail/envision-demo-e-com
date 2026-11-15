@@ -77,13 +77,13 @@ async function exportToExcel(orders: Order[], filename: string) {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SHEET 1 — Bill-Style Godown Sheet (one item per row, like a mall receipt)
-  //           Orders separated by a blank row.
-  //           Filter label is embedded in the filename so the sheet is universal.
+  // SHEET 1 — Warehouse Pick & Pack List (Flat, item-by-item, fully filterable)
+  //           Every row contains full order context so Excel sorting,
+  //           pincode grouping, and status filtering work flawlessly.
   // ═══════════════════════════════════════════════════════════════════════════
-  const billRows: Record<string, any>[] = [];
+  const pickAndPackRows: Record<string, any>[] = [];
 
-  orders.forEach((o, orderIdx) => {
+  orders.forEach((o) => {
     const addr = o.deliveryAddress;
     const dateObj = o.createdAt?.toDate ? o.createdAt.toDate() : null;
     const dateStr = dateObj ? dateObj.toLocaleDateString("en-IN") : "—";
@@ -93,106 +93,64 @@ async function exportToExcel(orders: Order[], filename: string) {
           .filter(Boolean)
           .join(", ")
       : "—";
-    const items = o.items && o.items.length > 0
-      ? o.items
-      : [{ name: "No items listed", variantLabel: "—", quantity: 0, price: 0, productId: "", image: "" }];
-    const totalQty = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
 
-    // ── ORDER HEADER ROW ──────────────────────────────────────────────────────
-    billRows.push({
-      "Order #": `ORDER ${orderIdx + 1}`,
-      "Order ID": o.id,
-      "Date": dateStr,
-      "Time": timeStr,
-      "Customer Name": o.userName || addr?.name || "Customer",
-      "Phone": addr?.phone || "—",
-      "City": addr?.city || "—",
-      "Full Address": fullAddress,
-      "Status": STATUS_LABELS[effectiveStatus(o)],
-      "Item Name": "── ITEM NAME ──",
-      "Variant / Size": "── VARIANT ──",
-      "Qty": "── QTY ──",
-      "Unit Price (₹)": "── PRICE ──",
-      "Item Total (₹)": "── ITEM TOTAL ──",
-      "Order Total (₹)": "",
-      "Subtotal (₹)": "",
-      "Shipping (₹)": "",
-    });
+    const displayOrderId = formatOrderId(o);
+    const orderStatus = STATUS_LABELS[effectiveStatus(o)];
+    const customerName = o.userName || addr?.name || "Customer";
+    const customerPhone = addr?.phone || "—";
+    const pincode = addr?.pincode || "—";
+    const city = addr?.city || "—";
+    const state = addr?.state || "—";
 
-    // ── ONE ROW PER ITEM ──────────────────────────────────────────────────────
-    items.forEach((item, itemIdx) => {
-      billRows.push({
-        "Order #": "",
-        "Order ID": "",
-        "Date": "",
-        "Time": "",
-        "Customer Name": "",
-        "Phone": "",
-        "City": "",
-        "Full Address": "",
-        "Status": "",
+    const items =
+      o.items && o.items.length > 0
+        ? o.items
+        : [
+            {
+              name: "No items listed",
+              variantLabel: "—",
+              quantity: 0,
+              price: 0,
+              productId: "",
+              image: "",
+            },
+          ];
+
+    items.forEach((item) => {
+      const qty = Number(item.quantity || 1);
+      const unitPrice = Number(item.price || 0);
+      const lineTotal = unitPrice * qty;
+
+      pickAndPackRows.push({
+        "Order ID": displayOrderId,
+        "Order Date": dateStr,
+        "Order Time": timeStr,
+        "Status": orderStatus,
         "Item Name": item.name,
-        "Variant / Size": item.variantLabel || "Standard",
-        "Qty": Number(item.quantity || 1),
-        "Unit Price (₹)": Number(item.price || 0),
-        "Item Total (₹)": Number(item.price || 0) * Number(item.quantity || 1),
-        "Order Total (₹)": itemIdx === 0 ? Number(o.total ?? 0) : "",
-        "Subtotal (₹)": "",
-        "Shipping (₹)": "",
+        "Size / Variant": item.variantLabel || "Standard",
+        "Pick Quantity": qty,
+        "Unit Price (₹)": unitPrice,
+        "Line Total (₹)": lineTotal,
+        "Customer Name": customerName,
+        "Customer Phone": customerPhone,
+        "Delivery Pincode": pincode,
+        "City": city,
+        "State": state,
+        "Full Address": fullAddress,
+        "Order Total (₹)": Number(o.total ?? 0),
+        "Database Ref ID": o.id,
       });
-    });
-
-    // ── ORDER TOTALS / SUMMARY ROW ────────────────────────────────────────────
-    billRows.push({
-      "Order #": "",
-      "Order ID": "",
-      "Date": "",
-      "Time": "",
-      "Customer Name": `TOTAL — ${o.userName || addr?.name || "Customer"}`,
-      "Phone": "",
-      "City": "",
-      "Full Address": "",
-      "Status": `Items: ${items.length} | Units: ${totalQty}`,
-      "Item Name": "ORDER TOTAL",
-      "Variant / Size": "",
-      "Qty": totalQty,
-      "Unit Price (₹)": "",
-      "Item Total (₹)": "",
-      "Order Total (₹)": Number(o.total ?? 0),
-      "Subtotal (₹)": Number(o.subtotal ?? 0),
-      "Shipping (₹)": Number(o.shipping ?? 0),
-    });
-
-    // ── BLANK GAP ROW between orders ─────────────────────────────────────────
-    billRows.push({
-      "Order #": "",
-      "Order ID": "",
-      "Date": "",
-      "Time": "",
-      "Customer Name": "",
-      "Phone": "",
-      "City": "",
-      "Full Address": "",
-      "Status": "",
-      "Item Name": "",
-      "Variant / Size": "",
-      "Qty": "",
-      "Unit Price (₹)": "",
-      "Item Total (₹)": "",
-      "Order Total (₹)": "",
-      "Subtotal (₹)": "",
-      "Shipping (₹)": "",
     });
   });
 
-  const wsBill = XLSX.utils.json_to_sheet(billRows);
-  wsBill["!cols"] = autoWidths(billRows);
-  XLSX.utils.book_append_sheet(wb, wsBill, "Godown Bill (Item-by-Item)");
+  const wsBill = XLSX.utils.json_to_sheet(pickAndPackRows);
+  wsBill["!cols"] = autoWidths(pickAndPackRows);
+  XLSX.utils.book_append_sheet(wb, wsBill, "Warehouse Pick & Pack List");
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SHEET 2 — Orders Summary (one row per order)
+  // SHEET 2 — Orders Summary (One row per order for managers & manifests)
   // ═══════════════════════════════════════════════════════════════════════════
-  const summaryRows = orders.map((o, i) => {
+  const summaryRows = orders.map((o) => {
     const addr = o.deliveryAddress;
     const totalQty = (o.items ?? []).reduce(
       (sum, it) => sum + (Number(it.quantity) || 0),
@@ -200,31 +158,35 @@ async function exportToExcel(orders: Order[], filename: string) {
     );
     const dateObj = o.createdAt?.toDate ? o.createdAt.toDate() : null;
     const itemsFormatted = (o.items ?? [])
-      .map((it) => `${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ""} × ${it.quantity}`)
+      .map(
+        (it) =>
+          `${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ""} × ${it.quantity}`
+      )
       .join(" | ");
 
     return {
-      "S.No": i + 1,
-      "Order ID": o.id,
-      "Date": dateObj ? dateObj.toLocaleDateString("en-IN") : "—",
-      "Time": dateObj ? dateObj.toLocaleTimeString("en-IN") : "—",
+      "Order ID": formatOrderId(o),
+      "Order Date": dateObj ? dateObj.toLocaleDateString("en-IN") : "—",
+      "Order Time": dateObj ? dateObj.toLocaleTimeString("en-IN") : "—",
       "Status": STATUS_LABELS[effectiveStatus(o)],
       "Customer Name": o.userName || addr?.name || "—",
       "Customer Phone": addr?.phone || "—",
       "Customer Email": o.userEmail || "—",
-      "Total Items Qty": totalQty,
-      "All Items": itemsFormatted || "—",
+      "Total Items Count": (o.items ?? []).length,
+      "Total Units to Pack": totalQty,
+      "All Items Summary": itemsFormatted || "—",
       "Subtotal (₹)": Number(o.subtotal ?? 0),
-      "Shipping (₹)": Number(o.shipping ?? 0),
+      "Delivery / Shipping (₹)": Number(o.shipping ?? 0),
       "Total Amount (₹)": Number(o.total ?? 0),
+      "Delivery Pincode": addr?.pincode || "—",
       "City": addr?.city || "—",
       "State": addr?.state || "—",
-      "Pincode": addr?.pincode || "—",
       "Full Delivery Address": addr
         ? [addr.line1, addr.line2, addr.city, addr.state, addr.pincode]
             .filter(Boolean)
             .join(", ")
         : "—",
+      "Database Ref ID": o.id,
     };
   });
 
@@ -233,10 +195,17 @@ async function exportToExcel(orders: Order[], filename: string) {
   XLSX.utils.book_append_sheet(wb, wsSummary, "Orders Summary");
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SHEET 3 — Warehouse Pick Totals (aggregated by product & variant)
+  // SHEET 3 — Inventory Pick Totals (Aggregated shelf-picking list)
+  //           CRITICAL: Strictly excludes cancelled orders so workers
+  //           never pick items for cancelled or refunded orders.
   // ═══════════════════════════════════════════════════════════════════════════
-  const pickMap: Record<string, { name: string; variant: string; totalQty: number; ordersCount: number }> = {};
-  orders.forEach((o) => {
+  const activeOrders = orders.filter((o) => effectiveStatus(o) !== "cancelled");
+  const pickMap: Record<
+    string,
+    { name: string; variant: string; totalQty: number; ordersCount: number }
+  > = {};
+
+  activeOrders.forEach((o) => {
     (o.items ?? []).forEach((item) => {
       const variantKey = item.variantLabel || "Standard";
       const key = `${item.name}____${variantKey}`;
@@ -257,13 +226,14 @@ async function exportToExcel(orders: Order[], filename: string) {
     "Item #": idx + 1,
     "Product Name": item.name,
     "Size / Volume / Variant": item.variant,
-    "Total Qty to Dispatch": item.totalQty,
-    "Orders Count": item.ordersCount,
+    "Total Qty to Pick": item.totalQty,
+    "Active Orders Count": item.ordersCount,
+    "Status Note": "Active orders only (Cancelled excluded)",
   }));
 
   const wsPickList = XLSX.utils.json_to_sheet(pickListRows);
   wsPickList["!cols"] = autoWidths(pickListRows);
-  XLSX.utils.book_append_sheet(wb, wsPickList, "Warehouse Pick Totals");
+  XLSX.utils.book_append_sheet(wb, wsPickList, "Inventory Pick Totals");
 
   XLSX.writeFile(wb, filename);
 }
@@ -1016,11 +986,11 @@ export function OrdersTab() {
 
   const handleExport = async () => {
     const today = new Date().toISOString().slice(0, 10);
-    const filename = `orders-${filter}-${today}.xlsx`;
+    const filename = `warehouse-orders-${filter}-${today}.xlsx`;
     await exportToExcel(orders, filename);
     toast.add({
-      title: "Excel Exported Successfully",
-      description: "Includes Orders Summary, Delivery Manifest (Items & Sizes), and Warehouse Pick Totals.",
+      title: "Warehouse Excel Exported",
+      description: "Includes Warehouse Pick & Pack List, Orders Summary, and Inventory Pick Totals.",
     });
   };
 
