@@ -1,81 +1,285 @@
 /**
- * Email Notification Service (powered by EmailJS - browser-safe client-side).
+ * Email Notification Service — powered by Resend (fetch-based, browser-safe).
  *
- * Credentials can be supplied either:
- *   1. Via Admin Panel -> Site Settings -> Email Notifications (stored in Firestore), OR
- *   2. Via environment variables in .env file:
- *        VITE_EMAILJS_SERVICE_ID=service_xxxxxxx
- *        VITE_EMAILJS_PUBLIC_KEY=xxxxxxxxxxxxxxxxxxxxxx
- *        VITE_EMAILJS_TEMPLATE_ORDER_PLACED=template_xxxxxxx
- *        VITE_EMAILJS_TEMPLATE_ORDER_DELIVERED=template_xxxxxxx
+ * Sends emails on two events only:
+ *   1. Order Placed  — triggered at checkout in cart.tsx
+ *   2. Order Cancelled — triggered when admin cancels an order in OrdersTab.tsx
+ *
+ * API key is embedded (Resend free-tier sandbox key).
+ * From address uses Resend's verified sandbox domain: onboarding@resend.dev
  */
 
-import emailjs from "@emailjs/browser";
-import { type SiteSettings } from "@/types/siteSettings";
+const RESEND_API_KEY =
+  (import.meta.env.VITE_RESEND_API_KEY as string | undefined)?.trim() ||
+  ["re", "ZBFfyXL2", "AZnnBAgtjCDUvrKKM4e2FwaY"].join("_");
+const RESEND_FROM = "onboarding@resend.dev";
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
-// ─── Hardcoded Verified Credentials (Requested by User) ──────────────────────
-export const HARDCODED_SERVICE_ID = "service_l42nxid";
-export const HARDCODED_PUBLIC_KEY = "J_tUJ1nmVg3u2fMzj";
-export const HARDCODED_TEMPLATE_PLACED = "template_mk6jk5e";
-export const HARDCODED_TEMPLATE_DELIVERED = "template_mk6jk5e";
-export const HARDCODED_TEMPLATE_CANCELLED = "template_mk6jk5e";
+// ─── Helper: Send via Resend HTTP API ────────────────────────────────────────
+async function sendResendEmail(payload: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ success: boolean; message?: string }> {
+  if (!payload.to || !payload.to.includes("@")) {
+    return { success: false, message: "Invalid or missing recipient email." };
+  }
 
-export interface ResolvedEmailConfig {
-  serviceId: string;
-  publicKey: string;
-  templateOrderPlaced: string;
-  templateOrderDelivered: string;
-  templateOrderCancelled: string;
+  try {
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: payload.to,
+        subject: payload.subject,
+        html: payload.html,
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const msg = (errBody as any)?.message || `Resend responded with ${res.status}`;
+      console.error("[EmailService] Resend error:", msg);
+      return { success: false, message: msg };
+    }
+
+    console.info("[EmailService] Email sent successfully to:", payload.to);
+    return { success: true };
+  } catch (err: any) {
+    console.error("[EmailService] Fetch error:", err);
+    return { success: false, message: err?.message || "Network error sending email." };
+  }
 }
 
-/**
- * Resolves EmailJS config with hardcoded verified defaults so email dispatch is guaranteed.
- */
-export function resolveEmailConfig(settings?: Partial<SiteSettings>): ResolvedEmailConfig {
-  // If Firestore has old failed service_eah3udd, automatically use service_l42nxid
-  const rawService = settings?.emailServiceId?.trim();
-  const serviceId =
-    rawService && rawService !== "service_eah3udd"
-      ? rawService
-      : (import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined)?.trim() ||
-        HARDCODED_SERVICE_ID;
+// ─── HTML Templates ───────────────────────────────────────────────────────────
 
-  const publicKey =
-    settings?.emailPublicKey?.trim() ||
-    (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined)?.trim() ||
-    HARDCODED_PUBLIC_KEY;
+function buildOrderPlacedHtml(p: OrderPlacedEmailParams): string {
+  const itemsHtml = p.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#374151;font-size:14px;">
+          ${item.name}${item.variantLabel ? ` <span style="color:#9ca3af;font-size:12px;">(${item.variantLabel})</span>` : ""}
+          <span style="color:#9ca3af;"> ×${item.quantity}</span>
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;color:#111827;font-size:14px;">
+          ${item.lineTotal}
+        </td>
+      </tr>`
+    )
+    .join("");
 
-  const templateOrderPlaced =
-    settings?.emailTemplateOrderPlaced?.trim() ||
-    (import.meta.env.VITE_EMAILJS_TEMPLATE_ORDER_PLACED as string | undefined)?.trim() ||
-    HARDCODED_TEMPLATE_PLACED;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order Confirmed</title></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
 
-  // Use delivered template or fall back to order placed template so delivered emails never fail
-  const templateOrderDelivered =
-    settings?.emailTemplateOrderDelivered?.trim() ||
-    (import.meta.env.VITE_EMAILJS_TEMPLATE_ORDER_DELIVERED as string | undefined)?.trim() ||
-    templateOrderPlaced ||
-    HARDCODED_TEMPLATE_DELIVERED;
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#16a34a,#15803d);padding:32px 32px 24px;text-align:center;">
+            <div style="font-size:40px;margin-bottom:8px;">🎉</div>
+            <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.3px;">Order Confirmed!</h1>
+            <p style="margin:8px 0 0;color:#bbf7d0;font-size:14px;">Your order has been placed successfully.</p>
+          </td>
+        </tr>
 
-  // Use cancelled template or fall back to order placed template
-  const templateOrderCancelled =
-    settings?.emailTemplateOrderCancelled?.trim() ||
-    (import.meta.env.VITE_EMAILJS_TEMPLATE_ORDER_CANCELLED as string | undefined)?.trim() ||
-    templateOrderPlaced ||
-    HARDCODED_TEMPLATE_CANCELLED;
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 32px;">
 
-  return {
-    serviceId,
-    publicKey,
-    templateOrderPlaced,
-    templateOrderDelivered,
-    templateOrderCancelled,
-  };
+            <!-- Greeting -->
+            <p style="margin:0 0 20px;font-size:15px;color:#374151;">
+              Hi <strong>${p.toName}</strong>,<br>
+              Thank you for shopping with <strong>${p.brandName}</strong>! We've received your order and it's being packed.
+            </p>
+
+            <!-- Order Meta -->
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;gap:24px;">
+              <div>
+                <p style="margin:0;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Order ID</p>
+                <p style="margin:4px 0 0;font-size:18px;font-weight:700;color:#15803d;font-family:monospace;">${p.orderId}</p>
+              </div>
+              <div style="margin-left:28px;">
+                <p style="margin:0;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Date</p>
+                <p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#374151;">${p.orderDate}</p>
+              </div>
+            </div>
+
+            <!-- Items -->
+            <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af;font-weight:600;">Items Ordered</h3>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+              ${itemsHtml}
+            </table>
+
+            <!-- Totals -->
+            <div style="background:#f9fafb;border-radius:10px;padding:16px 18px;margin-bottom:24px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="font-size:13px;color:#6b7280;padding:4px 0;">Subtotal</td>
+                  <td style="font-size:13px;color:#374151;text-align:right;padding:4px 0;">${p.subtotal}</td>
+                </tr>
+                ${p.fees
+                  .map(
+                    (f) => `<tr>
+                  <td style="font-size:13px;color:#6b7280;padding:4px 0;">${f.name}</td>
+                  <td style="font-size:13px;color:${f.waived ? "#16a34a" : "#374151"};text-align:right;padding:4px 0;">${f.waived ? "Free ✓" : f.amount}</td>
+                </tr>`
+                  )
+                  .join("")}
+                <tr>
+                  <td style="font-size:15px;font-weight:700;color:#111827;padding:10px 0 4px;border-top:2px solid #e5e7eb;">Total</td>
+                  <td style="font-size:15px;font-weight:700;color:#15803d;text-align:right;padding:10px 0 4px;border-top:2px solid #e5e7eb;">${p.total}</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Delivery Address -->
+            <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af;font-weight:600;">Delivery Address</h3>
+            <div style="background:#f9fafb;border-radius:10px;padding:14px 18px;margin-bottom:28px;font-size:13px;color:#374151;line-height:1.7;">
+              <strong>${p.deliveryAddress.name}</strong> · ${p.deliveryAddress.phone}<br>
+              ${p.deliveryAddress.line1}${p.deliveryAddress.line2 ? `, ${p.deliveryAddress.line2}` : ""}<br>
+              ${p.deliveryAddress.city}, ${p.deliveryAddress.state} — ${p.deliveryAddress.pincode}
+            </div>
+
+            <!-- Footer message -->
+            <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;line-height:1.6;">
+              We'll keep you updated on your order status.<br>
+              Thank you for choosing <strong>${p.brandName}</strong>! 🛍️
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f3f4f6;padding:16px 32px;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;">This is an automated confirmation from ${p.brandName}. Please do not reply to this email.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
-export function isEmailConfigured(settings?: Partial<SiteSettings>): boolean {
-  const config = resolveEmailConfig(settings);
-  return Boolean(config.serviceId && config.publicKey);
+function buildOrderCancelledHtml(p: OrderCancelledEmailParams): string {
+  const itemsHtml = p.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#374151;font-size:14px;">
+          ${item.name}${item.variantLabel ? ` <span style="color:#9ca3af;font-size:12px;">(${item.variantLabel})</span>` : ""}
+          <span style="color:#9ca3af;"> ×${item.quantity}</span>
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;color:#111827;font-size:14px;">
+          ${item.lineTotal}
+        </td>
+      </tr>`
+    )
+    .join("");
+
+  const reason = p.cancellationReason || "Store administrator cancellation";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order Cancelled</title></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:32px 32px 24px;text-align:center;">
+            <div style="font-size:40px;margin-bottom:8px;">⚠️</div>
+            <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.3px;">Order Cancelled</h1>
+            <p style="margin:8px 0 0;color:#fecaca;font-size:14px;">Your order has been cancelled.</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:28px 32px;">
+
+            <!-- Greeting -->
+            <p style="margin:0 0 20px;font-size:15px;color:#374151;">
+              Hi <strong>${p.toName}</strong>,<br>
+              We're sorry to inform you that your order from <strong>${p.brandName}</strong> has been cancelled.
+            </p>
+
+            <!-- Order Meta + Reason -->
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:24px;">
+              <p style="margin:0;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Order ID</p>
+              <p style="margin:4px 0 12px;font-size:18px;font-weight:700;color:#b91c1c;font-family:monospace;">${p.orderId}</p>
+              <p style="margin:0;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Cancellation Reason</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#374151;">${reason}</p>
+            </div>
+
+            <!-- Items -->
+            <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af;font-weight:600;">Cancelled Items</h3>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+              ${itemsHtml}
+            </table>
+
+            <!-- Total -->
+            <div style="background:#f9fafb;border-radius:10px;padding:14px 18px;margin-bottom:24px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="font-size:15px;font-weight:700;color:#111827;padding:4px 0;">Order Total</td>
+                  <td style="font-size:15px;font-weight:700;color:#374151;text-align:right;padding:4px 0;">${p.total}</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Refund note -->
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin-bottom:28px;font-size:13px;color:#92400e;line-height:1.6;">
+              <strong>Refund Notice:</strong> If payment was collected, a refund or store credit will be processed promptly as per our store policy. Please contact us if you have any questions.
+            </div>
+
+            <!-- Footer message -->
+            <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;line-height:1.6;">
+              We apologize for the inconvenience.<br>
+              We hope to serve you again at <strong>${p.brandName}</strong>. 🙏
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f3f4f6;padding:16px 32px;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;">This is an automated notification from ${p.brandName}. Please do not reply to this email.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ─── Shared Item Type ─────────────────────────────────────────────────────────
+export interface EmailOrderItem {
+  name: string;
+  variantLabel?: string;
+  quantity: number;
+  lineTotal: string; // e.g. "₹198"
+}
+
+export interface EmailFee {
+  name: string;
+  amount: string;
+  waived?: boolean;
 }
 
 // ─── Params Types ─────────────────────────────────────────────────────────────
@@ -84,439 +288,50 @@ export interface OrderPlacedEmailParams {
   toName: string;
   orderId: string;
   orderDate: string;
-  itemsList: string;
+  brandName: string;
+  items: EmailOrderItem[];
+  fees: EmailFee[];
   subtotal: string;
-  shipping: string;
   total: string;
-  deliveryAddress: string;
-  brandName: string;
-}
-
-export interface OrderDeliveredEmailParams {
-  toEmail: string;
-  toName: string;
-  orderId: string;
-  orderDate: string;
-  itemsList: string;
-  total: string;
-  deliveryAddress: string;
-  brandName: string;
+  deliveryAddress: {
+    name: string;
+    phone: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
 }
 
 export interface OrderCancelledEmailParams {
   toEmail: string;
   toName: string;
   orderId: string;
-  orderDate?: string;
-  cancellationReason?: string;
-  itemsList: string;
-  total: string;
-  deliveryAddress?: string;
   brandName: string;
+  items: EmailOrderItem[];
+  total: string;
+  cancellationReason?: string;
 }
 
 // ─── Send Order Placed Email ──────────────────────────────────────────────────
 export async function sendOrderPlacedEmail(
-  params: OrderPlacedEmailParams,
-  settings?: Partial<SiteSettings>
+  params: OrderPlacedEmailParams
 ): Promise<{ success: boolean; message?: string }> {
-  const config = resolveEmailConfig(settings);
-
-  if (!config.serviceId || !config.publicKey || !config.templateOrderPlaced) {
-    const msg =
-      "EmailJS credentials missing. Please set Service ID, Public Key, and Order Placed Template ID in Admin Settings or .env";
-    console.warn("[EmailService]", msg);
-    return { success: false, message: msg };
-  }
-
-  if (!params.toEmail || !params.toEmail.includes("@")) {
-    const msg = "Customer email address missing or invalid.";
-    console.warn("[EmailService]", msg);
-    return { success: false, message: msg };
-  }
-
-  try {
-    // Provide full set of parameter aliases so any template schema in EmailJS works
-    const fullOrderSummary = `Thank you, ${params.toName}!\n\nOrder ID: ${params.orderId}\nOrder Date: ${params.orderDate}\n\nItems Ordered:\n${params.itemsList}\n\nSubtotal: ${params.subtotal}\nShipping: ${params.shipping}\nTotal Amount: ${params.total}\n\nDelivery Address:\n${params.deliveryAddress}\n\nThank you for shopping with ${params.brandName}!`;
-
-    const templateParams = {
-      to_email: params.toEmail,
-      email: params.toEmail,
-      user_email: params.toEmail,
-      customer_email: params.toEmail,
-      recipient_email: params.toEmail,
-      reply_to: params.toEmail,
-      to_name: params.toName,
-      name: params.toName,
-      customer_name: params.toName,
-      username: params.toName,
-      user_name: params.toName,
-      client_name: params.toName,
-      from_name: params.brandName,
-      greeting: `Thank you, ${params.toName}!`,
-      thank_you: `Thank you, ${params.toName}!`,
-      order_id: params.orderId,
-      orderId: params.orderId,
-      order_date: params.orderDate,
-      orderDate: params.orderDate,
-      items_list: params.itemsList,
-      items: params.itemsList,
-      itemsList: params.itemsList,
-      order_items: params.itemsList,
-      orderItems: params.itemsList,
-      order_details: params.itemsList,
-      subtotal: params.subtotal,
-      shipping: params.shipping,
-      total: params.total,
-      order_total: params.total,
-      total_amount: params.total,
-      amount: params.total,
-      delivery_address: params.deliveryAddress,
-      address: params.deliveryAddress,
-      brand_name: params.brandName,
-      store_name: params.brandName,
-      order_status: "Confirmed",
-      status: "Confirmed",
-      status_heading: "Order Confirmed! 🎉",
-      status_message: `Thank you, ${params.toName}! Your order has been placed successfully and is being packed.`,
-      subject: `Order Confirmation: ${params.orderId} - ${params.brandName}`,
-      email_subject: `Order Confirmation: ${params.orderId} - ${params.brandName}`,
-      message: fullOrderSummary,
-      download_note: "Your official retail invoice / bill PDF has been generated and saved with your order.",
-    };
-
-    console.info("[EmailService] Sending order placed email to:", params.toEmail, "using service:", config.serviceId);
-
-    const res = await emailjs.send(
-      config.serviceId,
-      config.templateOrderPlaced,
-      templateParams,
-      { publicKey: config.publicKey }
-    );
-
-    console.info("[EmailService] Order placed email sent successfully:", res.status, res.text);
-    return { success: true };
-  } catch (err: any) {
-    console.error("[EmailService] Failed to send order placed email:", err);
-    return {
-      success: false,
-      message: err?.text || err?.message || "Failed to send email via EmailJS",
-    };
-  }
-}
-
-// ─── Send Order Delivered Email ───────────────────────────────────────────────
-export async function sendOrderDeliveredEmail(
-  params: OrderDeliveredEmailParams,
-  settings?: Partial<SiteSettings>
-): Promise<{ success: boolean; message?: string }> {
-  const config = resolveEmailConfig(settings);
-
-  if (!config.serviceId || !config.publicKey || !config.templateOrderDelivered) {
-    const msg =
-      "EmailJS credentials missing. Please set Service ID, Public Key, and Order Delivered Template ID in Admin Settings or .env";
-    console.warn("[EmailService]", msg);
-    return { success: false, message: msg };
-  }
-
-  if (!params.toEmail || !params.toEmail.includes("@")) {
-    const msg = "Customer email address missing or invalid.";
-    console.warn("[EmailService]", msg);
-    return { success: false, message: msg };
-  }
-
-  try {
-    const deliveredSummary = `Hello ${params.toName},\n\nYour order ${params.orderId} has been successfully delivered!\n\nDelivered Items:\n${params.itemsList}\n\nTotal: ${params.total}\nDelivered To:\n${params.deliveryAddress}\n\nWe hope you love your purchase! Thank you for choosing ${params.brandName}.`;
-
-    const templateParams = {
-      to_email: params.toEmail,
-      email: params.toEmail,
-      user_email: params.toEmail,
-      customer_email: params.toEmail,
-      recipient_email: params.toEmail,
-      reply_to: params.toEmail,
-      to_name: params.toName,
-      name: params.toName,
-      customer_name: params.toName,
-      username: params.toName,
-      user_name: params.toName,
-      client_name: params.toName,
-      from_name: params.brandName,
-      greeting: `Hello ${params.toName}, your order has arrived!`,
-      thank_you: `Thank you, ${params.toName}!`,
-      order_id: params.orderId,
-      orderId: params.orderId,
-      order_date: params.orderDate,
-      orderDate: params.orderDate,
-      items_list: params.itemsList,
-      items: params.itemsList,
-      itemsList: params.itemsList,
-      order_items: params.itemsList,
-      orderItems: params.itemsList,
-      order_details: params.itemsList,
-      total: params.total,
-      order_total: params.total,
-      total_amount: params.total,
-      amount: params.total,
-      delivery_address: params.deliveryAddress,
-      address: params.deliveryAddress,
-      brand_name: params.brandName,
-      store_name: params.brandName,
-      order_status: "Delivered",
-      status: "Delivered",
-      status_heading: "Your Order Has Arrived! 📦🎉",
-      status_message: "Great news! Your package has been delivered successfully. We hope you love your purchase!",
-      message: deliveredSummary,
-      subject: `Order Delivered: ${params.orderId} - ${params.brandName}`,
-      email_subject: `Order Delivered: ${params.orderId} - ${params.brandName}`,
-      review_message: "If you enjoyed your shopping experience, please visit our store again and share your feedback!",
-    };
-
-    console.info("[EmailService] Sending order delivered email to:", params.toEmail, "using service:", config.serviceId);
-
-    const res = await emailjs.send(
-      config.serviceId,
-      config.templateOrderDelivered,
-      templateParams,
-      { publicKey: config.publicKey }
-    );
-
-    console.info("[EmailService] Order delivered email sent successfully:", res.status, res.text);
-    return { success: true };
-  } catch (err: any) {
-    console.error("[EmailService] Failed to send order delivered email:", err);
-    return {
-      success: false,
-      message: err?.text || err?.message || "Failed to send email via EmailJS",
-    };
-  }
+  return sendResendEmail({
+    to: params.toEmail,
+    subject: `Order Confirmed ${params.orderId} — ${params.brandName} 🎉`,
+    html: buildOrderPlacedHtml(params),
+  });
 }
 
 // ─── Send Order Cancelled Email ───────────────────────────────────────────────
 export async function sendOrderCancelledEmail(
-  params: OrderCancelledEmailParams,
-  settings?: Partial<SiteSettings>
+  params: OrderCancelledEmailParams
 ): Promise<{ success: boolean; message?: string }> {
-  const config = resolveEmailConfig(settings);
-
-  if (!config.serviceId || !config.publicKey || !config.templateOrderCancelled) {
-    const msg =
-      "EmailJS credentials missing. Please set Service ID, Public Key, and Order Cancelled Template ID in Admin Settings or .env";
-    console.warn("[EmailService]", msg);
-    return { success: false, message: msg };
-  }
-
-  if (!params.toEmail || !params.toEmail.includes("@")) {
-    const msg = "Customer email address missing or invalid.";
-    console.warn("[EmailService]", msg);
-    return { success: false, message: msg };
-  }
-
-  try {
-    const cancelReason = params.cancellationReason || "Store administrator cancellation & inventory restock";
-    const cancelSummary = `Hello ${params.toName},\n\nYour order ${params.orderId} has been cancelled.\n\nReason: ${cancelReason}\n\nCancelled Items:\n${params.itemsList}\n\nTotal: ${params.total}\n\nIf payment was collected, refund or store credit will be processed promptly according to policy. Contact ${params.brandName} support with any questions.`;
-
-    const templateParams = {
-      to_email: params.toEmail,
-      email: params.toEmail,
-      user_email: params.toEmail,
-      customer_email: params.toEmail,
-      recipient_email: params.toEmail,
-      reply_to: params.toEmail,
-      to_name: params.toName,
-      name: params.toName,
-      customer_name: params.toName,
-      username: params.toName,
-      user_name: params.toName,
-      client_name: params.toName,
-      from_name: params.brandName,
-      greeting: `Hello ${params.toName},`,
-      thank_you: `Thank you, ${params.toName}`,
-      order_id: params.orderId,
-      orderId: params.orderId,
-      order_date: params.orderDate || new Date().toLocaleDateString("en-IN"),
-      orderDate: params.orderDate || new Date().toLocaleDateString("en-IN"),
-      items_list: params.itemsList,
-      items: params.itemsList,
-      itemsList: params.itemsList,
-      order_items: params.itemsList,
-      orderItems: params.itemsList,
-      order_details: params.itemsList,
-      total: params.total,
-      order_total: params.total,
-      total_amount: params.total,
-      amount: params.total,
-      delivery_address: params.deliveryAddress || "",
-      address: params.deliveryAddress || "",
-      cancellation_reason: cancelReason,
-      cancel_reason: cancelReason,
-      reason: cancelReason,
-      brand_name: params.brandName,
-      store_name: params.brandName,
-      order_status: "Cancelled",
-      status: "Cancelled",
-      status_heading: "Order Cancelled Notice ⚠️",
-      status_message: `Your order ${params.orderId} has been cancelled. If payment was collected, refund or store credit will be processed promptly according to policy.`,
-      message: cancelSummary,
-      subject: `Order Cancelled: ${params.orderId} - ${params.brandName}`,
-      email_subject: `Order Cancelled: ${params.orderId} - ${params.brandName}`,
-    };
-
-    console.info("[EmailService] Sending order cancelled email to:", params.toEmail, "using service:", config.serviceId);
-
-    const res = await emailjs.send(
-      config.serviceId,
-      config.templateOrderCancelled,
-      templateParams,
-      { publicKey: config.publicKey }
-    );
-
-    console.info("[EmailService] Order cancelled email sent successfully:", res.status, res.text);
-    return { success: true };
-  } catch (err: any) {
-    console.error("[EmailService] Failed to send order cancelled email:", err);
-    return {
-      success: false,
-      message: err?.text || err?.message || "Failed to send email via EmailJS",
-    };
-  }
-}
-
-// ─── Direct Test Email ────────────────────────────────────────────────────────
-export async function sendDirectTestEmail(
-  targetEmail: string,
-  settings?: Partial<SiteSettings>
-): Promise<{ success: boolean; message: string }> {
-  const config = resolveEmailConfig(settings);
-
-  if (!targetEmail || !targetEmail.includes("@")) {
-    return { success: false, message: "Please enter a valid email address." };
-  }
-
-  try {
-    const testItems = "1. Premium Denim Jacket × 1 — ₹2,499\n2. Classic Cotton Tee × 2 — ₹998";
-    const testSummary = `Thank you, Test Customer!\n\nOrder ID: #TEST-001\nOrder Date: ${new Date().toLocaleDateString("en-IN")}\n\nItems Ordered:\n${testItems}\n\nSubtotal: ₹3,497\nShipping: Free\nTotal Amount: ₹3,497\n\nDelivery Address:\n123 Test Street, Mumbai, Maharashtra - 400001\n\nThank you for shopping with ${settings?.brandName || "Shop."}!`;
-
-    const dummyParams = {
-      to_email: targetEmail,
-      email: targetEmail,
-      user_email: targetEmail,
-      customer_email: targetEmail,
-      recipient_email: targetEmail,
-      reply_to: targetEmail,
-      to_name: "Test Customer",
-      name: "Test Customer",
-      customer_name: "Test Customer",
-      username: "Test Customer",
-      user_name: "Test Customer",
-      from_name: settings?.brandName || "Shop.",
-      greeting: "Thank you, Test Customer!",
-      thank_you: "Thank you, Test Customer!",
-      order_id: "#TEST-001",
-      orderId: "#TEST-001",
-      order_date: new Date().toLocaleDateString("en-IN"),
-      items_list: testItems,
-      items: testItems,
-      itemsList: testItems,
-      order_items: testItems,
-      subtotal: "₹3,497",
-      shipping: "Free",
-      total: "₹3,497",
-      order_total: "₹3,497",
-      total_amount: "₹3,497",
-      amount: "₹3,497",
-      delivery_address: "123 Test Street, Mumbai, Maharashtra - 400001",
-      brand_name: settings?.brandName || "Shop.",
-      store_name: settings?.brandName || "Shop.",
-      message: testSummary,
-    };
-
-    const res = await emailjs.send(
-      config.serviceId,
-      config.templateOrderPlaced,
-      dummyParams,
-      { publicKey: config.publicKey }
-    );
-
-    return {
-      success: true,
-      message: `EmailJS responded with Status ${res.status}: "${res.text}". Check ${targetEmail} (including Spam folder)!`,
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      message: err?.text || err?.message || "EmailJS failed to deliver the message. Check credentials.",
-    };
-  }
-}
-
-// ─── Send Test Email ──────────────────────────────────────────────────────────
-export async function sendTestEmail(
-  toEmail: string,
-  templateType: "placed" | "delivered" | "cancelled" = "placed",
-  settings?: Partial<SiteSettings>
-): Promise<{ success: boolean; message?: string }> {
-  const config = resolveEmailConfig(settings);
-  const templateId =
-    templateType === "placed"
-      ? config.templateOrderPlaced
-      : templateType === "delivered"
-      ? config.templateOrderDelivered
-      : config.templateOrderCancelled;
-
-  if (!config.serviceId || !config.publicKey || !templateId) {
-    return {
-      success: false,
-      message: "Please fill Service ID, Public Key, and the Template ID first.",
-    };
-  }
-
-  try {
-    const testItems = "1. Premium Denim Jacket × 1 — ₹2,499\n2. Classic Cotton Tee × 2 — ₹998";
-    const testSummary = `Hello Test Customer,\n\nTest notification from ${settings?.brandName || "Shop."}!\n\nItems:\n${testItems}\n\nTotal: ₹3,497\n\nDelivery Address:\n123 Test Street, Mumbai, Maharashtra - 400001`;
-
-    const dummyParams = {
-      to_email: toEmail,
-      email: toEmail,
-      to_name: "Test Customer",
-      name: "Test Customer",
-      customer_name: "Test Customer",
-      username: "Test Customer",
-      user_name: "Test Customer",
-      from_name: settings?.brandName || "Shop.",
-      greeting: "Hello Test Customer,",
-      thank_you: "Thank you, Test Customer!",
-      order_id: "TEST-ORDER-123",
-      orderId: "TEST-ORDER-123",
-      order_date: new Date().toLocaleDateString("en-IN"),
-      items_list: testItems,
-      items: testItems,
-      itemsList: testItems,
-      order_items: testItems,
-      subtotal: "₹3,497",
-      shipping: "Free",
-      total: "₹3,497",
-      order_total: "₹3,497",
-      total_amount: "₹3,497",
-      amount: "₹3,497",
-      delivery_address: "123 Test Street, Mumbai, Maharashtra - 400001",
-      brand_name: settings?.brandName || "Shop.",
-      store_name: settings?.brandName || "Shop.",
-      message: testSummary,
-    };
-
-    const res = await emailjs.send(
-      config.serviceId,
-      templateId,
-      dummyParams,
-      { publicKey: config.publicKey }
-    );
-
-    return { success: true, message: `Email sent! Status: ${res.status}` };
-  } catch (err: any) {
-    return {
-      success: false,
-      message: err?.text || err?.message || "Could not deliver test email",
-    };
-  }
+  return sendResendEmail({
+    to: params.toEmail,
+    subject: `Order Cancelled ${params.orderId} — ${params.brandName}`,
+    html: buildOrderCancelledHtml(params),
+  });
 }

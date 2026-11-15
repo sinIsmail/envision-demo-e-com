@@ -25,7 +25,6 @@ import { db } from "@/firebase/fb";
 import { toast } from "@/components/ui/toast";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import {
-  sendOrderDeliveredEmail,
   sendOrderCancelledEmail,
 } from "@/lib/emailService";
 import {
@@ -289,7 +288,6 @@ function StatusDropdown({
   onRequestCancel: (order: Order) => void;
   compact?: boolean;
 }) {
-  const { settings } = useSiteSettings();
   const [updating, setUpdating] = useState(false);
   const current = effectiveStatus(order);
 
@@ -307,70 +305,6 @@ function StatusDropdown({
         title: "Status updated",
         description: `Marked as "${STATUS_LABELS[newStatus]}"`,
       });
-
-      // Send delivery confirmation email automatically if order is marked as delivered / shipped
-      if (newStatus === "shipped") {
-        const customerEmail =
-          order.userEmail || (order.deliveryAddress as any)?.email;
-        if (customerEmail) {
-          const addr = order.deliveryAddress;
-          const fullAddr = addr
-            ? [addr.line1, addr.line2, addr.city, addr.state, addr.pincode]
-                .filter(Boolean)
-                .join(", ")
-            : "—";
-          const itemsList = (order.items ?? [])
-            .map(
-              (it, idx) =>
-                `${idx + 1}. ${it.name}${it.variantLabel ? ` [${it.variantLabel}]` : ""} × ${it.quantity}`
-            )
-            .join("\n");
-          const dateStr = order.createdAt?.toDate
-            ? order.createdAt.toDate().toLocaleDateString("en-IN")
-            : new Date().toLocaleDateString("en-IN");
-
-          sendOrderDeliveredEmail(
-            {
-              toEmail: customerEmail,
-              toName: order.userName || addr?.name || "Customer",
-              orderId: `#${order.id.slice(-6).toUpperCase()}`,
-              orderDate: dateStr,
-              itemsList,
-              total: formatPrice(order.total, settings.currency, settings.currencyLocale),
-              deliveryAddress: fullAddr,
-              brandName: settings.brandName || "Shop.",
-            },
-            settings
-          )
-            .then((res) => {
-              if (res.success) {
-                toast.add({
-                  title: "Delivery Email Sent! ✉️",
-                  description: `Sent automatically to ${customerEmail}`,
-                });
-              } else {
-                toast.add({
-                  title: "Delivery Email Notice ⚠️",
-                  description:
-                    res.message ||
-                    "EmailJS keys not configured in Admin Settings.",
-                });
-              }
-            })
-            .catch((err) => {
-              console.warn("[Email] Delivery email error:", err);
-              toast.add({
-                title: "Delivery Email Error",
-                description: String(err?.text || err?.message || err),
-              });
-            });
-        } else {
-          toast.add({
-            title: "No Customer Email ℹ️",
-            description: "No customer email address on this order.",
-          });
-        }
-      }
     } catch (err) {
       console.error(err);
       toast.add({
@@ -945,35 +879,22 @@ export function OrdersTab() {
         order.userEmail || (order.deliveryAddress as any)?.email;
       if (customerEmail) {
         const addr = order.deliveryAddress;
-        const fullAddr = addr
-          ? [addr.line1, addr.line2, addr.city, addr.state, addr.pincode]
-              .filter(Boolean)
-              .join(", ")
-          : "—";
-        const itemsList = (order.items ?? [])
-          .map(
-            (it, idx) =>
-              `${idx + 1}. ${it.name}${it.variantLabel ? ` [${it.variantLabel}]` : ""} × ${it.quantity}`
-          )
-          .join("\n");
-        const dateStr = order.createdAt?.toDate
-          ? order.createdAt.toDate().toLocaleDateString("en-IN")
-          : new Date().toLocaleDateString("en-IN");
+        const displayOrderId = order.orderId ? `#${order.orderId}` : `#${order.id.slice(-6).toUpperCase()}`;
 
-        sendOrderCancelledEmail(
-          {
-            toEmail: customerEmail,
-            toName: order.userName || addr?.name || "Customer",
-            orderId: `#${order.id.slice(-6).toUpperCase()}`,
-            orderDate: dateStr,
-            itemsList,
-            total: formatPrice(order.total, settings.currency, settings.currencyLocale),
-            deliveryAddress: fullAddr,
-            brandName: settings.brandName || "Shop.",
-            cancellationReason: "Cancelled by store administrator & inventory stock restored.",
-          },
-          settings
-        )
+        sendOrderCancelledEmail({
+          toEmail: customerEmail,
+          toName: order.userName || addr?.name || "Customer",
+          orderId: displayOrderId,
+          brandName: settings.brandName || "Shop.",
+          items: (order.items ?? []).map((it) => ({
+            name: it.name,
+            variantLabel: it.variantLabel,
+            quantity: it.quantity,
+            lineTotal: formatPrice(it.price * it.quantity, settings.currency, settings.currencyLocale),
+          })),
+          total: formatPrice(order.total, settings.currency, settings.currencyLocale),
+          cancellationReason: "Cancelled by store administrator & inventory stock restored.",
+        })
           .then((res) => {
             if (res.success) {
               toast.add({
@@ -983,8 +904,7 @@ export function OrdersTab() {
             } else {
               toast.add({
                 title: "Cancellation Email Notice ⚠️",
-                description:
-                  res.message || "EmailJS keys not configured in Admin Settings.",
+                description: res.message || "Could not send cancellation email.",
               });
             }
           })

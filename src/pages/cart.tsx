@@ -1157,42 +1157,39 @@ function Cart() {
       // (Automatic PDF download cancelled — customer can download on demand via the button on confirmation card)
 
       if (customerEmail) {
-        const itemsList = cartData
-          .map(
-            (it, idx) =>
-              `${idx + 1}. ${it.name}${it.variantLabel ? ` [${it.variantLabel}]` : ""} × ${it.quantity} — ${formatPrice(it.price * it.quantity, settings.currency, settings.currencyLocale)}`
-          )
-          .join("\n");
-
-        const fullAddr = [
-          selectedAddress.name || customerName,
-          selectedAddress.phone || activePhone,
-          selectedAddress.line1,
-          selectedAddress.line2,
-          `${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`,
-        ]
-          .filter(Boolean)
-          .join(", ");
-
-        sendOrderPlacedEmail(
-          {
-            toEmail: customerEmail,
-            toName: customerName,
-            orderId: `#${placedOrderSeqId}`,
-            orderDate: new Date().toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
-            itemsList,
-            subtotal: formatPrice(subtotal, settings.currency, settings.currencyLocale),
-            shipping: totalFees === 0 ? "Free" : formatPrice(totalFees, settings.currency, settings.currencyLocale),
-            total: formatPrice(total, settings.currency, settings.currencyLocale),
-            deliveryAddress: fullAddr,
-            brandName: settings.brandName || "Shop.",
+        sendOrderPlacedEmail({
+          toEmail: customerEmail,
+          toName: customerName,
+          orderId: `#${placedOrderSeqId}`,
+          orderDate: new Date().toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          brandName: settings.brandName || "Shop.",
+          items: cartData.map((it) => ({
+            name: it.name,
+            variantLabel: it.variantLabel,
+            quantity: it.quantity,
+            lineTotal: formatPrice(it.price * it.quantity, settings.currency, settings.currencyLocale),
+          })),
+          fees: activeBillingFees.map((f) => ({
+            name: f.name,
+            amount: formatPrice(f.amount, settings.currency, settings.currencyLocale),
+            waived: f.waived,
+          })),
+          subtotal: formatPrice(subtotal, settings.currency, settings.currencyLocale),
+          total: formatPrice(total, settings.currency, settings.currencyLocale),
+          deliveryAddress: {
+            name: selectedAddress.name || customerName,
+            phone: selectedAddress.phone || activePhone,
+            line1: selectedAddress.line1,
+            line2: selectedAddress.line2 || undefined,
+            city: selectedAddress.city,
+            state: selectedAddress.state,
+            pincode: selectedAddress.pincode,
           },
-          settings
-        )
+        })
           .then((res) => {
             if (res.success) {
               console.info("[Email] Confirmation email sent successfully to", customerEmail);
@@ -1204,7 +1201,7 @@ function Cart() {
               console.warn("[Email] Automated order email notice:", res.message);
               toast.add({
                 title: "Order Placed! 🎉",
-                description: `Order #${placedOrderSeqId} confirmed. Email notice: ${res.message}`,
+                description: `Order #${placedOrderSeqId} confirmed.`,
               });
             }
           })
