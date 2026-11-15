@@ -187,6 +187,15 @@ async function exportToExcel(orders: Order[], filename: string) {
       )
       .join(" | ");
 
+    const feesFormatted =
+      o.billingFees && o.billingFees.length > 0
+        ? o.billingFees
+            .map((f) => `${f.name}: ${f.waived ? "Free (Waived)" : `₹${f.amount}`}`)
+            .join(" | ")
+        : o.shipping > 0
+        ? `Delivery: ₹${o.shipping}`
+        : "Free";
+
     return {
       "Order ID": formatOrderId(o),
       "Order Date": dateObj ? dateObj.toLocaleDateString("en-IN") : "—",
@@ -200,6 +209,7 @@ async function exportToExcel(orders: Order[], filename: string) {
       "All Items Summary": itemsFormatted || "—",
       "Subtotal (₹)": Number(o.subtotal ?? 0),
       "Delivery / Shipping (₹)": Number(o.shipping ?? 0),
+      "Fees Breakdown": feesFormatted,
       "Total Amount (₹)": Number(o.total ?? 0),
       "Delivery Pincode": addr?.pincode || "—",
       "City": addr?.city || "—",
