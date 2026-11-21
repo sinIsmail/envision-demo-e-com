@@ -41,11 +41,11 @@ function HorizontalScrollRow({ products }: { products: Product[] }) {
 
       <div
         ref={rowRef}
-        className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory"
+        className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {products.map((product) => (
-          <div key={product.id} className="shrink-0 snap-start w-[200px] sm:w-[220px]">
+          <div key={product.id} className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px]">
             <ProductCard product={product} />
           </div>
         ))}

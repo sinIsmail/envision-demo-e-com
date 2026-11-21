@@ -268,10 +268,10 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
                     Popular Categories
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                     <button
                       onClick={() => setSelectedCategory("all")}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs ${
+                      className={`h-9 sm:h-8 px-4 rounded-full text-xs font-bold transition-all shadow-2xs shrink-0 flex items-center ${
                         selectedCategory === "all"
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-primary/50 text-slate-800 dark:text-slate-200"
@@ -279,7 +279,7 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
                     >
                       All ({products.length})
                     </button>
-                    {categoryMetaList.slice(0, 5).map((meta) => {
+                    {categoryMetaList.slice(0, 8).map((meta) => {
                       const managed = settings.categories?.find(
                         (c) => c.name.toLowerCase() === meta.name.toLowerCase()
                       );
@@ -287,7 +287,7 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
                         <button
                           key={meta.name}
                           onClick={() => setSelectedCategory(meta.name)}
-                          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs ${
+                          className={`h-9 sm:h-8 px-4 rounded-full text-xs font-bold transition-all shadow-2xs shrink-0 flex items-center ${
                             selectedCategory.toLowerCase() === meta.name.toLowerCase()
                               ? "bg-primary text-primary-foreground shadow-xs"
                               : "bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-primary/50 text-slate-800 dark:text-slate-200"
@@ -588,13 +588,13 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
 
             <div
               ref={trendingRowRef}
-              className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory"
+              className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               {products.slice(0, 8).map((product) => (
                 <div
                   key={product.id}
-                  className="shrink-0 snap-start w-[180px] sm:w-[220px]"
+                  className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px]"
                 >
                   <ProductCard product={product} />
                 </div>

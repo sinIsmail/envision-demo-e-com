@@ -4,14 +4,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { useTheme } from "@/components/theme-provider";
 import { toast } from "@/components/ui/toast";
-import { COLOR_PALETTES, DEFAULT_SETTINGS, type ColorPalette, type BillingFee } from "@/types/siteSettings";
+import { DEFAULT_SETTINGS, type BillingFee } from "@/types/siteSettings";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/themeUtils";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import {
   Globe,
   Image,
@@ -28,41 +27,16 @@ import {
   Type,
   Share2,
   Save,
-  Eye,
-  Check,
-  Sparkles,
   Mail,
-  Layout,
-  Sun,
-  Moon,
-  Laptop,
-  Megaphone,
   Plus,
   Trash2,
   Pencil,
   Receipt,
+  Sparkles,
 } from "lucide-react";
 
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-async function uploadToCloudinary(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", UPLOAD_PRESET);
-  formData.append("cloud_name", CLOUD_NAME);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-    method: "POST",
-    body: formData,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message ?? "Upload failed");
-  return data.secure_url as string;
-}
-
 export function SiteSettingsTab() {
-  const { settings, saveSettings, applyPreviewTheme } = useSiteSettings();
-  const { setTheme } = useTheme();
+  const { settings, saveSettings } = useSiteSettings();
   const [form, setForm] = useState({
     ...settings,
     billingFees:
@@ -88,7 +62,6 @@ export function SiteSettingsTab() {
   });
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingHero, setUploadingHero] = useState(false);
 
   // Billing Fees Management State & Handlers
   const [feeModalOpen, setFeeModalOpen] = useState(false);
@@ -207,26 +180,6 @@ export function SiteSettingsTab() {
     });
   }, [settings]);
 
-  const handleSelectPalette = (palette: ColorPalette) => {
-    setForm((prev) => ({
-      ...prev,
-      primaryColor: palette.primary,
-      colorPalettePreset: palette.id,
-    }));
-    applyPreviewTheme(palette.primary);
-  };
-
-  const handleCustomColor = (colorHex: string) => {
-    setForm((prev) => ({
-      ...prev,
-      primaryColor: colorHex,
-      colorPalettePreset: "custom",
-    }));
-    if (/^#[0-9A-Fa-f]{6}$/.test(colorHex) || /^#[0-9A-Fa-f]{3}$/.test(colorHex)) {
-      applyPreviewTheme(colorHex);
-    }
-  };
-
   const set = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -278,21 +231,6 @@ export function SiteSettingsTab() {
       toast.add({ title: "Upload failed", description: "Could not upload logo." });
     } finally {
       setUploadingLogo(false);
-    }
-  };
-
-  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingHero(true);
-    try {
-      const url = await uploadToCloudinary(file);
-      setForm((prev) => ({ ...prev, heroImageUrl: url }));
-      toast.add({ title: "Hero image uploaded", description: "Click Save to apply." });
-    } catch {
-      toast.add({ title: "Upload failed", description: "Could not upload image." });
-    } finally {
-      setUploadingHero(false);
     }
   };
 
@@ -365,544 +303,19 @@ export function SiteSettingsTab() {
 
           <Separator />
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2 text-base font-semibold">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-sm font-bold flex items-center gap-1.5 text-foreground">
                 <Palette className="h-4 w-4 text-primary" />
-                Store Color Palette & Theme
-              </Label>
-              <Badge variant="outline" className="text-xs">
-                {form.colorPalettePreset && form.colorPalettePreset !== "custom"
-                  ? COLOR_PALETTES.find((p) => p.id === form.colorPalettePreset)?.name || "Preset"
-                  : "Custom Color"}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select a curated luxury color scheme or pick a custom brand color. Changes apply live to all buttons, badges, links, and accents.
-            </p>
-
-            {/* Curated Presets Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-              {COLOR_PALETTES.map((p) => {
-                const isSelected = form.primaryColor.toLowerCase() === p.primary.toLowerCase();
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handleSelectPalette(p)}
-                    className={`group relative flex flex-col items-start p-2.5 rounded-xl border text-left transition-all ${
-                      isSelected
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
-                        : "border-border/70 hover:border-border hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-2">
-                      <span
-                        className="h-6 w-6 rounded-full shadow-inner border border-black/10 shrink-0"
-                        style={{ backgroundColor: p.primary }}
-                      />
-                      {isSelected && (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px]">
-                          <Check className="h-2.5 w-2.5" />
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs font-semibold leading-tight line-clamp-1">{p.name}</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
-                      {p.description}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Custom Hex & Color Picker */}
-            <div className="rounded-xl border bg-muted/20 p-3.5 space-y-3">
-              <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Custom Color Picker
+                Storefront Design, Colors & Layout
               </span>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative">
-                  <input
-                    id="primaryColor"
-                    type="color"
-                    value={form.primaryColor}
-                    onChange={(e) => handleCustomColor(e.target.value)}
-                    className="h-10 w-14 cursor-pointer rounded-lg border bg-background p-1"
-                  />
-                </div>
-                <Input
-                  value={form.primaryColor}
-                  onChange={(e) => handleCustomColor(e.target.value)}
-                  className="w-32 font-mono text-sm uppercase"
-                  placeholder="#6366F1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyPreviewTheme(form.primaryColor)}
-                  className="text-xs"
-                >
-                  Apply Live Preview
-                </Button>
-              </div>
-
-              {/* Live Preview Box */}
-              <div className="mt-3 pt-3 border-t flex flex-wrap items-center gap-3">
-                <span className="text-xs text-muted-foreground font-medium">UI Preview:</span>
-                <Button size="sm" type="button" className="text-xs pointer-events-none">
-                  Primary Button
-                </Button>
-                <Button size="sm" variant="outline" type="button" className="text-xs pointer-events-none">
-                  Outline Button
-                </Button>
-                <Badge className="pointer-events-none">
-                  Badge Highlight
-                </Badge>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Layouts, themes (Light/Dark), 10 color presets, hero headers, and announcement banners are now managed in the dedicated <strong>Design & Appearance</strong> tab.
+              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* STOREFRONT DESIGN & LAYOUT (MOBILE-FIRST) */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Layout className="h-5 w-5 text-primary" />
-            <CardTitle>Storefront Design & Layout (Mobile-First)</CardTitle>
-          </div>
-          <CardDescription>
-            Choose your active store design template and light/dark theme preference.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Layout Options Grid */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Select Store Design Template</Label>
-              <Badge variant="outline" className="text-xs">
-                Active:{" "}
-                {(form.storeLayout ?? "aura-modern") === "aura-modern"
-                  ? "Aura Modern (Flagship)"
-                  : form.storeLayout === "urban-chic"
-                  ? "Urban Chic / Editorial"
-                  : form.storeLayout === "neo-luxe"
-                  ? "Neo Luxe / Cyber Dark"
-                  : "Default Classic"}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Option 1: Aura Modern (Flagship Redesign) */}
-              <div
-                onClick={() => {
-                  setForm((prev) => ({
-                    ...prev,
-                    storeLayout: "aura-modern",
-                    primaryColor: "#2563eb",
-                    colorPalettePreset: "electric-cobalt",
-                  }));
-                  applyPreviewTheme("#2563eb");
-                }}
-                className={`relative flex flex-col p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
-                  (form.storeLayout ?? "aura-modern") === "aura-modern"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
-                    : "border-border/70 hover:border-border hover:bg-muted/40"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-semibold">
-                    Flagship Modern
-                  </Badge>
-                  {(form.storeLayout ?? "aura-modern") === "aura-modern" && (
-                    <Badge className="text-[10px] bg-primary">Active</Badge>
-                  )}
-                </div>
-                <h4 className="font-bold text-sm text-foreground">Aura Modern</h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Flagship redesign with asymmetric hero, live product spotlight, dynamic category bento, trending reel, and VIP club.
-                </p>
-              </div>
-
-              {/* Option 2: Default Classic */}
-              <div
-                onClick={() => setForm((prev) => ({ ...prev, storeLayout: "default" }))}
-                className={`relative flex flex-col p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
-                  form.storeLayout === "default"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
-                    : "border-border/70 hover:border-border hover:bg-muted/40"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant="outline" className="text-[10px]">Classic</Badge>
-                  {form.storeLayout === "default" && (
-                    <Badge className="text-[10px] bg-primary">Active</Badge>
-                  )}
-                </div>
-                <h4 className="font-bold text-sm text-foreground">Default Classic</h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Balanced marketplace design with horizontal category carousels, responsive grid, and clean cards.
-                </p>
-              </div>
-
-              {/* Option 2: Urban Chic (Editorial Monochrome) */}
-              <div
-                onClick={() => {
-                  setForm((prev) => ({
-                    ...prev,
-                    storeLayout: "urban-chic",
-                    primaryColor: "#000000",
-                    colorPalettePreset: "urban-chic",
-                  }));
-                  applyPreviewTheme("#000000");
-                }}
-                className={`relative flex flex-col p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
-                  form.storeLayout === "urban-chic"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
-                    : "border-border/70 hover:border-border hover:bg-muted/40"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-semibold">
-                    Editorial Monochrome
-                  </Badge>
-                  {form.storeLayout === "urban-chic" && (
-                    <Badge className="text-[10px] bg-primary">Active</Badge>
-                  )}
-                </div>
-                <h4 className="font-bold text-sm text-foreground">Urban Chic / Editorial</h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  High-fashion editorial layout with dynamic category cards, real product thumbnails, live search, and customer guarantees.
-                </p>
-              </div>
-
-              {/* Option 3: Neo Luxe (Cyber Dark) */}
-              <div
-                onClick={() => {
-                  setForm((prev) => ({
-                    ...prev,
-                    storeLayout: "neo-luxe",
-                    primaryColor: "#84cc16",
-                    colorPalettePreset: "cyber-lime",
-                  }));
-                  applyPreviewTheme("#84cc16");
-                }}
-                className={`relative flex flex-col p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
-                  form.storeLayout === "neo-luxe"
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
-                    : "border-border/70 hover:border-border hover:bg-muted/40"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="text-[10px] bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-300 font-semibold">
-                    Cyber Dark
-                  </Badge>
-                  {form.storeLayout === "neo-luxe" && (
-                    <Badge className="text-[10px] bg-primary">Active</Badge>
-                  )}
-                </div>
-                <h4 className="font-bold text-sm text-foreground">Neo Luxe / Cyber Dark</h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Futuristic cyber dark aesthetic with neon accents, dynamic category matrix, live inventory status, and glassmorphic cards.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Theme Mode (Light / Dark / System) */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Default Store Theme Mode</Label>
-            <div className="grid grid-cols-3 gap-3 max-w-md">
-              <button
-                type="button"
-                onClick={() => {
-                  setForm((prev) => ({ ...prev, themeMode: "light" }));
-                  setTheme("light");
-                }}
-                className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                  form.themeMode === "light"
-                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                    : "border-border bg-card hover:bg-muted text-foreground"
-                }`}
-              >
-                <Sun className="h-4 w-4" />
-                Light
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setForm((prev) => ({ ...prev, themeMode: "dark" }));
-                  setTheme("dark");
-                }}
-                className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                  form.themeMode === "dark"
-                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                    : "border-border bg-card hover:bg-muted text-foreground"
-                }`}
-              >
-                <Moon className="h-4 w-4" />
-                Dark
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setForm((prev) => ({ ...prev, themeMode: "system" }));
-                  setTheme("system");
-                }}
-                className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                  (form.themeMode ?? "system") === "system"
-                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                    : "border-border bg-card hover:bg-muted text-foreground"
-                }`}
-              >
-                <Laptop className="h-4 w-4" />
-                System
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* TOP ANNOUNCEMENT & PROMO BANNERS */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-primary" />
-            <CardTitle>Top Announcement Banners (Pre & Post Sign Up)</CardTitle>
-          </div>
-          <CardDescription>
-            Configure two dedicated banners: one for visitors before signing up, and another for authenticated members after logging in.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* ── BANNER 1: PRE-SIGNUP (Visitors / Guests) ── */}
-          <div className="rounded-2xl border p-4 sm:p-5 space-y-4 bg-muted/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs font-semibold">Banner 1</Badge>
-                  <h4 className="font-bold text-sm text-foreground">Before Sign Up (Visitors & Guests)</h4>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Shown only to logged-out visitors. Immediately disappears once a customer logs in.
-                </p>
-              </div>
-              {/* Toggle 1 */}
-              <button
-                type="button"
-                role="switch"
-                aria-checked={Boolean(form.promoBannerEnabled)}
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    promoBannerEnabled: prev.promoBannerEnabled === false ? true : false,
-                  }))
-                }
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                  form.promoBannerEnabled !== false ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
-                    form.promoBannerEnabled !== false ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="promoBannerText">Guest Announcement Text</Label>
-              <Input
-                id="promoBannerText"
-                value={form.promoBannerText ?? ""}
-                onChange={(e) => set("promoBannerText", e.target.value)}
-                placeholder="Sign up and get 20% off your first order."
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="promoBannerLinkText">Action Button / Link Text (optional)</Label>
-                <Input
-                  id="promoBannerLinkText"
-                  value={form.promoBannerLinkText ?? ""}
-                  onChange={(e) => set("promoBannerLinkText", e.target.value)}
-                  placeholder="Sign Up Now (or leave empty)"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="promoBannerLinkUrl">Destination URL</Label>
-                <Input
-                  id="promoBannerLinkUrl"
-                  value={form.promoBannerLinkUrl ?? ""}
-                  onChange={(e) => set("promoBannerLinkUrl", e.target.value)}
-                  placeholder="/Signup or https://..."
-                />
-              </div>
-            </div>
-
-            {/* Live Preview 1 */}
-            <div className="pt-1">
-              <Label className="text-xs text-muted-foreground font-medium">Guest Preview (Logged Out):</Label>
-              {form.promoBannerEnabled !== false && form.promoBannerText ? (
-                <div className="mt-1.5 rounded-lg bg-foreground text-background text-xs py-2 px-4 text-center font-medium flex items-center justify-center">
-                  <span>
-                    {form.promoBannerText}{" "}
-                    {form.promoBannerLinkText && (
-                      <span className="underline font-bold ml-1">{form.promoBannerLinkText}</span>
-                    )}
-                  </span>
-                </div>
-              ) : (
-                <p className="mt-1 text-xs text-muted-foreground italic">Guest banner is currently disabled.</p>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* ── BANNER 2: POST-SIGNUP (Logged-in Members) ── */}
-          <div className="rounded-2xl border p-4 sm:p-5 space-y-4 bg-muted/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs font-semibold">Banner 2</Badge>
-                  <h4 className="font-bold text-sm text-foreground">After Sign Up (Logged-in Customers)</h4>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Shown only to authenticated accounts. If disabled, members will see no banner at all.
-                </p>
-              </div>
-              {/* Toggle 2 */}
-              <button
-                type="button"
-                role="switch"
-                aria-checked={Boolean(form.memberBannerEnabled)}
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    memberBannerEnabled: prev.memberBannerEnabled === true ? false : true,
-                  }))
-                }
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                  form.memberBannerEnabled === true ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
-                    form.memberBannerEnabled === true ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="memberBannerText">Member Announcement Text</Label>
-              <Input
-                id="memberBannerText"
-                value={form.memberBannerText ?? ""}
-                onChange={(e) => set("memberBannerText", e.target.value)}
-                placeholder="Welcome back! Free doorstep delivery on orders above ₹999."
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="memberBannerLinkText">Action Button / Link Text (optional)</Label>
-                <Input
-                  id="memberBannerLinkText"
-                  value={form.memberBannerLinkText ?? ""}
-                  onChange={(e) => set("memberBannerLinkText", e.target.value)}
-                  placeholder="Shop Collection (or leave empty)"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="memberBannerLinkUrl">Destination URL</Label>
-                <Input
-                  id="memberBannerLinkUrl"
-                  value={form.memberBannerLinkUrl ?? ""}
-                  onChange={(e) => set("memberBannerLinkUrl", e.target.value)}
-                  placeholder="/ or /Cart"
-                />
-              </div>
-            </div>
-
-            {/* Live Preview 2 */}
-            <div className="pt-1">
-              <Label className="text-xs text-muted-foreground font-medium">Member Preview (Logged In):</Label>
-              {form.memberBannerEnabled === true && form.memberBannerText ? (
-                <div className="mt-1.5 rounded-lg bg-foreground text-background text-xs py-2 px-4 text-center font-medium flex items-center justify-center">
-                  <span>
-                    {form.memberBannerText}{" "}
-                    {form.memberBannerLinkText && (
-                      <span className="underline font-bold ml-1">{form.memberBannerLinkText}</span>
-                    )}
-                  </span>
-                </div>
-              ) : (
-                <p className="mt-1 text-xs text-muted-foreground italic">Member banner is currently disabled (members will see no banner).</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* HERO SECTION */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-primary" />
-            <CardTitle>Hero Banner</CardTitle>
-          </div>
-          <CardDescription>The large banner shown at the top of the home page.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="heroTitle">Hero Title</Label>
-            <Input
-              id="heroTitle"
-              value={form.heroTitle}
-              onChange={(e) => set("heroTitle", e.target.value)}
-              placeholder="Discover Amazing Products"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="heroSubtitle">Hero Subtitle</Label>
-            <Textarea
-              id="heroSubtitle"
-              value={form.heroSubtitle}
-              onChange={(e) => set("heroSubtitle", e.target.value)}
-              placeholder="Shop the latest trends at unbeatable prices."
-              rows={2}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Hero Background Image</Label>
-            <div className="flex items-center gap-4">
-              {form.heroImageUrl && (
-                <img
-                  src={form.heroImageUrl}
-                  alt="Hero preview"
-                  className="h-16 w-28 rounded-md object-cover border"
-                />
-              )}
-              <label className="cursor-pointer">
-                <span className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors">
-                  {uploadingHero ? "Uploading..." : form.heroImageUrl ? "Change Image" : "Upload Image"}
-                </span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleHeroUpload} disabled={uploadingHero} />
-              </label>
-              {form.heroImageUrl && (
-                <button
-                  className="text-xs text-destructive hover:underline"
-                  onClick={() => setForm((p) => ({ ...p, heroImageUrl: "" }))}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
+            <Badge variant="outline" className="border-primary text-primary text-xs shrink-0 ml-3">
+              See Design Tab →
+            </Badge>
           </div>
         </CardContent>
       </Card>

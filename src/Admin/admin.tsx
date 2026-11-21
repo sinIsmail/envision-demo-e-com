@@ -18,12 +18,14 @@ import {
   Users,
   Settings as SettingsIcon,
   Code,
+  Palette,
 } from "lucide-react";
 
 import { ProductsTab } from "./tabs/ProductsTab";
 import { InventoryTab } from "./tabs/InventoryTab";
 import { UsersTab } from "./tabs/UsersTab";
 import { OrdersTab } from "./tabs/OrdersTab";
+import { DesignTab } from "./tabs/DesignTab";
 import { SiteSettingsTab } from "./tabs/SiteSettingsTab";
 import { DeveloperTab } from "./tabs/DeveloperTab";
 
@@ -257,6 +259,10 @@ export default function AdminDashboard() {
                 <Users className="h-4 w-4" />
                 Users
               </TabsTrigger>
+              <TabsTrigger value="design" className="text-xs sm:text-sm flex items-center gap-1.5 font-semibold text-primary">
+                <Palette className="h-4 w-4" />
+                🎨 Design & Appearance
+              </TabsTrigger>
               <TabsTrigger value="settings" className="text-xs sm:text-sm flex items-center gap-1.5">
                 <SettingsIcon className="h-4 w-4" />
                 Store Settings
@@ -282,6 +288,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="users">
             <UsersTab />
+          </TabsContent>
+
+          <TabsContent value="design">
+            <DesignTab />
           </TabsContent>
 
           <TabsContent value="settings">
