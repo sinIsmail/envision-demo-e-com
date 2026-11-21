@@ -31,6 +31,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/firebase/fb";
 import { toast } from "@/components/ui/toast";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
+import type { Category } from "@/types/siteSettings";
 import {
   Pencil,
   Trash2,
@@ -44,6 +46,9 @@ import {
   Check,
   Images,
   RefreshCw,
+  Tag,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import type { Product, UnitType, UnitVariant } from "@/types/product";
 
@@ -470,12 +475,56 @@ function totalVariantStock(variants: UnitVariant[]): number {
 
 // ─── Main ProductsTab Component ───────────────────────────────────────────────
 export function ProductsTab() {
+  const { settings, saveSettings } = useSiteSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // ── Category Manager state ─────────────────────────────────────────────────
+  const [catOpen, setCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatEmoji, setNewCatEmoji] = useState("");
+  const [catSaving, setCatSaving] = useState(false);
+
+  const managedCategories: Category[] = settings.categories ?? [];
+
+  const addCategory = async () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    if (managedCategories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+      toast.add({ title: "Duplicate", description: `"${name}" already exists.` });
+      return;
+    }
+    const newCat: Category = {
+      id: `cat_${Date.now()}`,
+      name,
+      emoji: newCatEmoji.trim() || undefined,
+    };
+    setCatSaving(true);
+    try {
+      await saveSettings({ categories: [...managedCategories, newCat] });
+      setNewCatName("");
+      setNewCatEmoji("");
+      toast.add({ title: "Category Added ✓", description: `"${name}" is now available.` });
+    } catch {
+      toast.add({ title: "Error", description: "Could not save category." });
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  const deleteCategory = async (id: string, name: string) => {
+    if (!confirm(`Delete category "${name}"? Products assigned to it will not be affected.`)) return;
+    try {
+      await saveSettings({ categories: managedCategories.filter((c) => c.id !== id) });
+      toast.add({ title: "Deleted", description: `"${name}" removed.` });
+    } catch {
+      toast.add({ title: "Error", description: "Could not delete category." });
+    }
+  };
 
   // Add Product Modal
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -512,14 +561,19 @@ export function ProductsTab() {
     fetchProducts();
   }, []);
 
-  // Unique categories for filter
+  // Unique categories — managed list first, then any extra from products
   const categories = useMemo(() => {
-    const set = new Set<string>();
+    const managed = (settings.categories ?? []).map((c) => c.name);
+    const fromProducts = new Set<string>();
     products.forEach((p) => {
-      if (p.category) set.add(p.category.trim());
+      if (p.category) fromProducts.add(p.category.trim());
     });
-    return Array.from(set);
-  }, [products]);
+    // merge: managed first, then any extras not in managed list
+    const extras = Array.from(fromProducts).filter(
+      (n) => !managed.some((m) => m.toLowerCase() === n.toLowerCase())
+    );
+    return [...managed, ...extras];
+  }, [products, settings.categories]);
 
   // Filtered products (by Name, Product ID, and Category)
   const filteredProducts = useMemo(() => {
@@ -721,6 +775,108 @@ export function ProductsTab() {
 
   return (
     <div className="space-y-6">
+      {/* ── Manage Categories Card ─────────────────────────────────────────── */}
+      <Card className="shadow-md">
+        <CardHeader className="pb-3">
+          <button
+            type="button"
+            onClick={() => setCatOpen((o) => !o)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg font-bold">Manage Categories</CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  {managedCategories.length} managed · categories appear as dropdown options when adding/editing products
+                </CardDescription>
+              </div>
+            </div>
+            {catOpen ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            )}
+          </button>
+        </CardHeader>
+
+        {catOpen && (
+          <CardContent className="pt-0 space-y-4">
+            {/* Add new category */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative w-16 shrink-0">
+                <Input
+                  placeholder="🏷️"
+                  value={newCatEmoji}
+                  onChange={(e) => setNewCatEmoji(e.target.value)}
+                  className="text-center text-lg px-2"
+                  maxLength={4}
+                  title="Optional emoji (e.g. 🥦)"
+                />
+              </div>
+              <Input
+                placeholder="Category name (e.g. Vegetables)"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCategory()}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                onClick={addCategory}
+                disabled={catSaving || !newCatName.trim()}
+                className="shrink-0 gap-1.5 text-xs"
+                size="sm"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Category
+              </Button>
+            </div>
+
+            {/* Existing categories list */}
+            {managedCategories.length === 0 ? (
+              <div className="text-center py-6 rounded-xl border border-dashed border-border/70 bg-muted/30">
+                <Tag className="h-7 w-7 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">No categories yet. Add your first one above.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {managedCategories.map((cat) => {
+                  const count = products.filter(
+                    (p) => p.category?.toLowerCase() === cat.name.toLowerCase()
+                  ).length;
+                  return (
+                    <div
+                      key={cat.id}
+                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-border/70 bg-background hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {cat.emoji ? (
+                          <span className="text-lg leading-none shrink-0">{cat.emoji}</span>
+                        ) : (
+                          <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="text-sm font-semibold text-foreground truncate">{cat.name}</span>
+                        <Badge variant="secondary" className="text-[10px] shrink-0">
+                          {count} product{count !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteCategory(cat.id, cat.name)}
+                        className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded shrink-0"
+                        title="Delete category"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
       <Card className="shadow-md">
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -786,17 +942,20 @@ export function ProductsTab() {
               >
                 All Categories
               </Button>
-              {categories.map((c) => (
-                <Button
-                  key={c}
-                  variant={categoryFilter === c ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCategoryFilter(c)}
-                  className="text-xs h-9 shrink-0"
-                >
-                  {c}
-                </Button>
-              ))}
+              {categories.map((c) => {
+                const meta = managedCategories.find((m) => m.name.toLowerCase() === c.toLowerCase());
+                return (
+                  <Button
+                    key={c}
+                    variant={categoryFilter === c ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCategoryFilter(c)}
+                    className="text-xs h-9 shrink-0"
+                  >
+                    {meta?.emoji ? `${meta.emoji} ` : ""}{c}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         </CardHeader>
@@ -1113,30 +1272,32 @@ export function ProductsTab() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="add-category">Category</Label>
-                <Input
-                  id="add-category"
-                  placeholder="e.g. Grocery, Vegetables"
-                  value={addForm.proCategory}
-                  onChange={(e) => setAddForm({ ...addForm, proCategory: e.target.value })}
-                />
-                {categories.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    <span className="text-[10px] text-muted-foreground self-center">Quick pick:</span>
-                    {categories.slice(0, 5).map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setAddForm((prev) => ({ ...prev, proCategory: cat }))}
-                        className={`text-[11px] px-2.5 py-0.5 rounded-full border transition-colors ${
-                          addForm.proCategory.toLowerCase() === cat.toLowerCase()
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/70"
-                        }`}
-                      >
-                        {cat}
-                      </button>
+                {managedCategories.length > 0 ? (
+                  <select
+                    id="add-category"
+                    value={addForm.proCategory}
+                    onChange={(e) => setAddForm({ ...addForm, proCategory: e.target.value })}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  >
+                    <option value="">— None / Uncategorized —</option>
+                    {managedCategories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.emoji ? `${cat.emoji} ` : ""}{cat.name}
+                      </option>
                     ))}
-                  </div>
+                  </select>
+                ) : (
+                  <Input
+                    id="add-category"
+                    placeholder="e.g. Grocery, Vegetables"
+                    value={addForm.proCategory}
+                    onChange={(e) => setAddForm({ ...addForm, proCategory: e.target.value })}
+                  />
+                )}
+                {managedCategories.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    💡 Create categories in the <strong>Manage Categories</strong> section above for a dropdown selector.
+                  </p>
                 )}
               </div>
 
@@ -1238,28 +1399,24 @@ export function ProductsTab() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Input
-                  value={editForm.proCategory}
-                  onChange={(e) => setEditForm((p) => ({ ...p, proCategory: e.target.value }))}
-                />
-                {categories.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    <span className="text-[10px] text-muted-foreground self-center">Quick pick:</span>
-                    {categories.slice(0, 5).map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setEditForm((p) => ({ ...p, proCategory: cat }))}
-                        className={`text-[11px] px-2.5 py-0.5 rounded-full border transition-colors ${
-                          editForm.proCategory.toLowerCase() === cat.toLowerCase()
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/70"
-                        }`}
-                      >
-                        {cat}
-                      </button>
+                {managedCategories.length > 0 ? (
+                  <select
+                    value={editForm.proCategory}
+                    onChange={(e) => setEditForm((p) => ({ ...p, proCategory: e.target.value }))}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  >
+                    <option value="">— None / Uncategorized —</option>
+                    {managedCategories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.emoji ? `${cat.emoji} ` : ""}{cat.name}
+                      </option>
                     ))}
-                  </div>
+                  </select>
+                ) : (
+                  <Input
+                    value={editForm.proCategory}
+                    onChange={(e) => setEditForm((p) => ({ ...p, proCategory: e.target.value }))}
+                  />
                 )}
               </div>
 

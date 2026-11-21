@@ -386,6 +386,7 @@ export function UrbanChicLayout({ products }: { products: Product[] }) {
               </button>
               {categoriesData.map((cat) => {
                 const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
+                const managed = settings.categories?.find((c) => c.name.toLowerCase() === cat.name.toLowerCase());
                 return (
                   <button
                     key={cat.name}
@@ -397,7 +398,7 @@ export function UrbanChicLayout({ products }: { products: Product[] }) {
                         : "border border-border/70 bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {cat.name} ({cat.count})
+                    {managed?.emoji ? `${managed.emoji} ` : ""}{cat.name} ({cat.count})
                   </button>
                 );
               })}

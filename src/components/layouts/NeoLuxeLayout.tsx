@@ -374,6 +374,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
               </button>
               {categoriesData.map((cat) => {
                 const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
+                const managed = settings.categories?.find((c) => c.name.toLowerCase() === cat.name.toLowerCase());
                 return (
                   <button
                     key={cat.name}
@@ -385,7 +386,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
                         : "border border-zinc-800 bg-zinc-900/70 text-zinc-300 hover:border-zinc-700"
                     }`}
                   >
-                    {cat.name} ({cat.count})
+                    {managed?.emoji ? `${managed.emoji} ` : ""}{cat.name} ({cat.count})
                   </button>
                 );
               })}

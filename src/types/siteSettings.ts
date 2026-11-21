@@ -1,4 +1,10 @@
 export type StoreLayoutType = "aura-modern" | "default" | "urban-chic" | "neo-luxe";
+
+export interface Category {
+  id: string;    // e.g. "cat_1700000000000"
+  name: string;  // e.g. "Vegetables"
+  emoji?: string; // e.g. "🥦" (optional)
+}
 export type ThemeModeType = "light" | "dark" | "system";
 
 export interface ColorPalette {
@@ -73,6 +79,9 @@ export interface SiteSettings {
   memberBannerLinkText?: string;
   memberBannerLinkUrl?: string;
 
+  // Admin-managed Category List (displayed as pills/dropdown across store)
+  categories?: Category[];
+
   // Customer Email Notifications (powered by EmailJS)
   emailServiceId?: string;
   emailPublicKey?: string;
@@ -128,6 +137,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   memberBannerText: "Welcome back! Enjoy free delivery on orders above ₹999.",
   memberBannerLinkText: "Shop Collection",
   memberBannerLinkUrl: "/",
+  categories: [],
   emailServiceId: "service_l42nxid",
   emailPublicKey: "J_tUJ1nmVg3u2fMzj",
   emailTemplateOrderPlaced: "template_mk6jk5e",

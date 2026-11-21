@@ -280,6 +280,7 @@ export function DefaultClassicLayout({ products }: { products: Product[] }) {
               {categories.map((cat) => {
                 const count = products.filter((p) => p.category?.trim().toLowerCase() === cat.toLowerCase()).length;
                 const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+                const managed = settings.categories?.find((c) => c.name.toLowerCase() === cat.toLowerCase());
                 return (
                   <button
                     key={cat}
@@ -291,7 +292,7 @@ export function DefaultClassicLayout({ products }: { products: Product[] }) {
                         : "border border-border/70 bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {cat} ({count})
+                    {managed?.emoji ? `${managed.emoji} ` : ""}{cat} ({count})
                   </button>
                 );
               })}
@@ -339,11 +340,14 @@ export function DefaultClassicLayout({ products }: { products: Product[] }) {
                 (p) => p.category?.trim().toLowerCase() === category.toLowerCase()
               );
               if (categoryProducts.length === 0) return null;
+              const managed = settings.categories?.find((c) => c.name.toLowerCase() === category.toLowerCase());
               return (
                 <section key={category}>
                   <div className="mb-4 flex items-end justify-between">
                     <div>
-                      <h3 className="text-lg font-bold sm:text-xl capitalize">{category}</h3>
+                      <h3 className="text-lg font-bold sm:text-xl capitalize">
+                        {managed?.emoji ? `${managed.emoji} ` : ""}{category}
+                      </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {categoryProducts.length} items in {category}
                       </p>

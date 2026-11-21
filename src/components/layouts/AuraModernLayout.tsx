@@ -279,19 +279,24 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
                     >
                       All ({products.length})
                     </button>
-                    {categoryMetaList.slice(0, 5).map((meta) => (
-                      <button
-                        key={meta.name}
-                        onClick={() => setSelectedCategory(meta.name)}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs ${
-                          selectedCategory.toLowerCase() === meta.name.toLowerCase()
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-primary/50 text-slate-800 dark:text-slate-200"
-                        }`}
-                      >
-                        {meta.name} ({meta.count})
-                      </button>
-                    ))}
+                    {categoryMetaList.slice(0, 5).map((meta) => {
+                      const managed = settings.categories?.find(
+                        (c) => c.name.toLowerCase() === meta.name.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={meta.name}
+                          onClick={() => setSelectedCategory(meta.name)}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs ${
+                            selectedCategory.toLowerCase() === meta.name.toLowerCase()
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-primary/50 text-slate-800 dark:text-slate-200"
+                          }`}
+                        >
+                          {managed?.emoji ? `${managed.emoji} ` : ""}{meta.name} ({meta.count})
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
