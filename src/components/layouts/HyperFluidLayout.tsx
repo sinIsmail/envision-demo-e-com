@@ -4,7 +4,7 @@ import ProductCard from "@/pages/ProductHomeList";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useAuth } from "@/context/AuthContext";
 import { addToLocalCart } from "@/lib/cartStrorage";
-import { formatPrice } from "@/lib/themeUtils";
+import { formatPrice, getContrastForeground, getLuminance } from "@/lib/themeUtils";
 import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/firebase/fb";
 import { toast } from "@/components/ui/toast";
@@ -243,30 +243,44 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
     });
   };
 
+  // Compute dynamic hero colors based on active color palette
+  const heroColor = settings.primaryColor || "#FDE047";
+  const isDarkHero = getLuminance(heroColor) < 0.45;
+  const heroFg = getContrastForeground(heroColor);
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-white selection:bg-[#FDE047] selection:text-black transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-white selection:bg-primary selection:text-primary-foreground transition-colors duration-300">
       
-      {/* ── 1. ASYMMETRIC LIQUID HERO (Cyber Yellow Shout Area) ────────────────── */}
-      <section className="relative bg-[#FDE047] text-black overflow-hidden rounded-br-[80px] sm:rounded-br-[140px] rounded-bl-[28px] sm:rounded-bl-[48px] shadow-[0_20px_60px_rgba(253,224,71,0.25)] transition-all">
+      {/* ── 1. ASYMMETRIC LIQUID HERO (Dynamic Shout Color Area) ────────────────── */}
+      <section
+        style={{ backgroundColor: heroColor, color: heroFg }}
+        className="relative overflow-hidden rounded-br-[80px] sm:rounded-br-[140px] rounded-bl-[28px] sm:rounded-bl-[48px] shadow-2xl transition-all"
+      >
         {/* Subtle Fluid Decorative Blobs */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-white/30 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-yellow-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-white/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-black/10 blur-3xl pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-24 lg:pb-28">
           <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
             
             {/* Left Column: Massive Left-Aligned Typography */}
             <div className="space-y-6 lg:col-span-7">
-              <div className="inline-flex items-center gap-2 rounded-full bg-black/90 px-4 py-1.5 text-xs font-bold text-white shadow-lg tracking-wide">
-                <span className="flex h-2 w-2 rounded-full bg-[#FDE047] animate-pulse" />
+              <div
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold shadow-lg tracking-wide ${
+                  isDarkHero ? "bg-white/15 text-white border border-white/20" : "bg-black/90 text-white"
+                }`}
+              >
+                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <span className="tracking-widest uppercase text-[10px]">HYPER-SATURATED FLUID · 2026</span>
               </div>
 
-              <h1 className="text-5xl font-black tracking-tighter sm:text-7xl lg:text-8xl text-black leading-[0.92]">
+              <h1 className="text-5xl font-black tracking-tighter sm:text-7xl lg:text-8xl leading-[0.92]">
                 {settings.heroTitle || "CURATED AESTHETICS. HYPER QUALITY."}
               </h1>
 
-              <p className="max-w-xl text-base sm:text-lg font-medium text-black/80 leading-relaxed">
+              <p className={`max-w-xl text-base sm:text-lg font-medium leading-relaxed ${
+                isDarkHero ? "text-white/80" : "text-black/80"
+              }`}>
                 {settings.heroSubtitle ||
                   "Next-generation shopping experience merging liquid geometry, glassmorphism, and instant dispatch."}
               </p>
@@ -274,7 +288,9 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
               {/* Dynamic Pill Category Fast-Filters */}
               {categories.length > 0 && (
                 <div className="pt-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black/60 mb-2.5">
+                  <p className={`text-[10px] font-black uppercase tracking-widest mb-2.5 ${
+                    isDarkHero ? "text-white/60" : "text-black/60"
+                  }`}>
                     DEPARTMENTS & DROPS
                   </p>
                   <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
@@ -282,8 +298,12 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                       onClick={() => setSelectedCategory("all")}
                       className={`h-9 px-4 rounded-full text-xs font-black transition-all active:scale-95 shadow-md shrink-0 flex items-center cursor-pointer ${
                         selectedCategory === "all"
-                          ? "bg-black text-[#FDE047] shadow-lg scale-102"
-                          : "bg-white/80 text-black hover:bg-black hover:text-white border border-black/10"
+                          ? isDarkHero
+                            ? "bg-white text-black shadow-lg scale-102"
+                            : "bg-black text-white shadow-lg scale-102"
+                          : isDarkHero
+                            ? "bg-white/10 text-white hover:bg-white/20 border border-white/15"
+                            : "bg-white/80 text-black hover:bg-black hover:text-white border border-black/10"
                       }`}
                     >
                       ALL ({products.length})
@@ -299,8 +319,12 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                           onClick={() => setSelectedCategory(meta.name)}
                           className={`h-9 px-4 rounded-full text-xs font-black transition-all active:scale-95 shadow-md shrink-0 flex items-center cursor-pointer ${
                             isSelected
-                              ? "bg-black text-[#FDE047] shadow-lg scale-102"
-                              : "bg-white/80 text-black hover:bg-black hover:text-white border border-black/10"
+                              ? isDarkHero
+                                ? "bg-white text-black shadow-lg scale-102"
+                                : "bg-black text-white shadow-lg scale-102"
+                              : isDarkHero
+                                ? "bg-white/10 text-white hover:bg-white/20 border border-white/15"
+                                : "bg-white/80 text-black hover:bg-black hover:text-white border border-black/10"
                           }`}
                         >
                           {managed?.emoji ? `${managed.emoji} ` : ""}{meta.name} ({meta.count})
@@ -313,15 +337,21 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
 
               {/* High-Impact Pill Trust Strips */}
               <div className="flex flex-wrap items-center gap-2.5 pt-3">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-black/10 border border-black/15 px-3.5 py-1 text-xs font-bold text-black">
+                <div className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold ${
+                  isDarkHero ? "bg-white/10 border border-white/15 text-white" : "bg-black/10 border border-black/15 text-black"
+                }`}>
                   <Truck className="h-3.5 w-3.5" />
                   <span>Free Express Delivery &gt; {settings.currency}{settings.freeDeliveryAbove}</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-black/10 border border-black/15 px-3.5 py-1 text-xs font-bold text-black">
+                <div className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold ${
+                  isDarkHero ? "bg-white/10 border border-white/15 text-white" : "bg-black/10 border border-black/15 text-black"
+                }`}>
                   <ShieldCheck className="h-3.5 w-3.5" />
                   <span>100% Genuine Guaranteed</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-black/10 border border-black/15 px-3.5 py-1 text-xs font-bold text-black">
+                <div className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold ${
+                  isDarkHero ? "bg-white/10 border border-white/15 text-white" : "bg-black/10 border border-black/15 text-black"
+                }`}>
                   <Zap className="h-3.5 w-3.5" />
                   <span>24h Dispatch</span>
                 </div>
@@ -335,17 +365,23 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
               >
-                <div className="relative rounded-[32px] border border-black/15 bg-white/40 dark:bg-black/30 backdrop-blur-2xl p-5 sm:p-7 shadow-2xl transition-all duration-300 group overflow-hidden">
+                <div className={`relative rounded-[32px] backdrop-blur-2xl p-5 sm:p-7 shadow-2xl transition-all duration-300 group overflow-hidden border ${
+                  isDarkHero ? "border-white/20 bg-white/10" : "border-black/15 bg-white/40 dark:bg-black/30"
+                }`}>
                   
                   {/* Top Bar inside Glass Card */}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-black text-[#FDE047] px-3 py-1 text-[11px] font-black tracking-wider uppercase shadow-xs flex items-center gap-1">
+                      <span className={`rounded-full px-3 py-1 text-[11px] font-black tracking-wider uppercase shadow-xs flex items-center gap-1 ${
+                        isDarkHero ? "bg-white text-black" : "bg-black text-white"
+                      }`}>
                         <Sparkles className="h-3 w-3" />
                         SPOTLIGHT
                       </span>
                       {recentProducts.length > 1 && (
-                        <span className="text-[11px] font-bold text-black/70 bg-black/10 px-2.5 py-0.5 rounded-full">
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                          isDarkHero ? "text-white/80 bg-white/10" : "text-black/70 bg-black/10"
+                        }`}>
                           {String(currentSlide + 1).padStart(2, "0")} / {String(recentProducts.length).padStart(2, "0")}
                         </span>
                       )}
@@ -357,7 +393,9 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                         <button
                           type="button"
                           onClick={prevSlide}
-                          className="h-8 w-8 rounded-full flex items-center justify-center bg-black/10 hover:bg-black text-black hover:text-white transition-colors cursor-pointer active:scale-90"
+                          className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors cursor-pointer active:scale-90 ${
+                            isDarkHero ? "bg-white/15 hover:bg-white text-white hover:text-black" : "bg-black/10 hover:bg-black text-black hover:text-white"
+                          }`}
                           aria-label="Previous product"
                         >
                           <ChevronLeft className="h-4 w-4" />
@@ -365,7 +403,9 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                         <button
                           type="button"
                           onClick={nextSlide}
-                          className="h-8 w-8 rounded-full flex items-center justify-center bg-black/10 hover:bg-black text-black hover:text-white transition-colors cursor-pointer active:scale-90"
+                          className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors cursor-pointer active:scale-90 ${
+                            isDarkHero ? "bg-white/15 hover:bg-white text-white hover:text-black" : "bg-black/10 hover:bg-black text-black hover:text-white"
+                          }`}
                           aria-label="Next product"
                         >
                           <ChevronRight className="h-4 w-4" />
@@ -418,7 +458,11 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                           type="button"
                           onClick={(e) => handleAddSlideProduct(e, activeProduct)}
                           disabled={addingSlideId === activeProduct.id}
-                          className="flex-1 h-12 rounded-full font-black text-xs sm:text-sm bg-black text-[#FDE047] shadow-xl hover:bg-neutral-900 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          className={`flex-1 h-12 rounded-full font-black text-xs sm:text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
+                            isDarkHero
+                              ? "bg-white text-black hover:bg-slate-100"
+                              : "bg-black text-white hover:bg-neutral-900"
+                          }`}
                         >
                           {activeProduct.hasVariants ? (
                             <>
@@ -435,7 +479,11 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                         <button
                           type="button"
                           onClick={() => navigate(`/product/${activeProduct.id}`)}
-                          className="h-12 px-5 rounded-full font-bold text-xs bg-white text-black border border-black/20 hover:bg-black/5 active:scale-95 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                          className={`h-12 px-5 rounded-full font-bold text-xs border active:scale-95 transition-all shadow-md flex items-center gap-1.5 cursor-pointer ${
+                            isDarkHero
+                              ? "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                              : "bg-white text-black border-black/20 hover:bg-black/5"
+                          }`}
                         >
                           <span>Details</span>
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -477,7 +525,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-[#FDE047] text-black flex items-center justify-center shadow-lg shadow-[#FDE047]/20">
+                <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20">
                   <TrendingUp className="h-5 w-5" />
                 </div>
                 <div>
@@ -514,7 +562,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
               {products.slice(0, 8).map((product) => (
                 <div
                   key={product.id}
-                  className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px] rounded-[32px] border border-slate-200/80 dark:border-white/15 bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl p-2 hover:border-[#FDE047] hover:shadow-[0_0_35px_rgba(253,224,71,0.25)] transition-all duration-300 shadow-sm"
+                  className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px] rounded-[32px] border border-slate-200/80 dark:border-white/15 bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl p-2 hover:border-primary hover:shadow-[0_0_35px_rgba(37,99,235,0.25)] transition-all duration-300 shadow-sm"
                 >
                   <ProductCard product={product} />
                 </div>
@@ -546,7 +594,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                 placeholder="Filter catalog..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-9 pr-8 text-xs h-10 rounded-full border border-slate-200/90 dark:border-white/20 bg-white/90 dark:bg-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#FDE047]/50 focus:border-[#FDE047] transition-all shadow-2xs"
+                className="w-full pl-9 pr-8 text-xs h-10 rounded-full border border-slate-200/90 dark:border-white/20 bg-white/90 dark:bg-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all shadow-2xs"
               />
               {searchQuery && (
                 <button
@@ -564,7 +612,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="h-10 rounded-full border border-slate-200/90 dark:border-white/20 bg-white dark:bg-[#171717] px-4 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FDE047]/50 cursor-pointer shadow-2xs"
+                className="h-10 rounded-full border border-slate-200/90 dark:border-white/20 bg-white dark:bg-[#171717] px-4 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer shadow-2xs"
               >
                 <option value="featured">Sort: Featured</option>
                 <option value="price-asc">Price: Low to High</option>
@@ -581,7 +629,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
           <div className="flex flex-wrap items-center gap-2 pt-4">
             <span className="text-xs text-slate-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Active:</span>
             {selectedCategory !== "all" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FDE047] text-black px-3.5 py-1 text-xs font-black shadow-xs">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-1 text-xs font-black shadow-xs">
                 Category: {selectedCategory}
                 <button
                   onClick={() => setSelectedCategory("all")}
@@ -629,7 +677,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                 setSelectedCategory("all");
                 handleSearchChange("");
               }}
-              className="mt-5 px-6 py-2.5 rounded-full bg-[#FDE047] text-black font-black text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-lg shadow-[#FDE047]/20"
+              className="mt-5 px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-black text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-lg shadow-primary/20"
             >
               Reset All Filters
             </button>
@@ -639,7 +687,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-white/[0.04] backdrop-blur-2xl p-2 hover:border-[#FDE047] hover:shadow-[0_0_30px_rgba(253,224,71,0.2)] transition-all duration-300 shadow-sm"
+                className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-white/[0.04] backdrop-blur-2xl p-2 hover:border-primary hover:shadow-[0_0_30px_rgba(37,99,235,0.2)] transition-all duration-300 shadow-sm"
               >
                 <ProductCard product={product} />
               </div>
@@ -653,7 +701,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                 <Truck className="h-5 w-5" />
               </div>
               <div>
@@ -665,7 +713,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
             </div>
 
             <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
@@ -677,7 +725,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
             </div>
 
             <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                 <RotateCcw className="h-5 w-5" />
               </div>
               <div>
@@ -689,7 +737,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
             </div>
 
             <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                 <Zap className="h-5 w-5" />
               </div>
               <div>
@@ -707,7 +755,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div className="relative overflow-hidden rounded-[40px] border border-slate-200/80 dark:border-white/15 bg-gradient-to-r from-amber-100/60 via-yellow-50/80 to-amber-200/50 dark:from-[#171717] dark:to-[#262626] p-8 sm:p-12 lg:flex lg:items-center lg:justify-between shadow-xl">
           <div className="max-w-xl space-y-3">
-            <span className="rounded-full bg-[#FDE047] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 shadow-xs">
+            <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest px-3 py-1 shadow-xs">
               INSIDER ACCESS
             </span>
             <h3 className="text-3xl font-black tracking-tight sm:text-4xl text-slate-900 dark:text-white">
@@ -733,13 +781,13 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                     value={newsletterEmail}
                     onChange={(e) => setNewsletterEmail(e.target.value)}
                     placeholder="Enter your email..."
-                    className="w-full sm:w-72 h-12 pl-11 pr-4 rounded-full border border-slate-300 dark:border-white/20 bg-white/90 dark:bg-black/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-[#FDE047] shadow-xs"
+                    className="w-full sm:w-72 h-12 pl-11 pr-4 rounded-full border border-slate-300 dark:border-white/20 bg-white/90 dark:bg-black/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-xs"
                     required
                   />
                 </div>
                 <button
                   type="submit"
-                  className="h-12 px-7 rounded-full bg-[#FDE047] text-black font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-[#FDE047]/20 cursor-pointer flex items-center justify-center gap-1.5"
+                  className="h-12 px-7 rounded-full bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <span>JOIN NOW</span>
                   <ArrowRight className="h-4 w-4" />

@@ -64,6 +64,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       applyThemeColor(updates.primaryColor);
     }
     if (updates.themeMode) {
+      localStorage.setItem("theme", updates.themeMode);
       const root = document.documentElement;
       if (updates.themeMode === "light") {
         root.classList.remove("dark");

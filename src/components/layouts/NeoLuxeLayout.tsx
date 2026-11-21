@@ -45,7 +45,7 @@ function HorizontalProductTrack({
     <div className="space-y-3 pt-6 border-t border-zinc-900">
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-lime-400">Department</span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-primary">Department</span>
           <h3 className="text-lg sm:text-xl font-black uppercase text-white tracking-tight">{title}</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -53,21 +53,21 @@ function HorizontalProductTrack({
             variant="ghost"
             size="sm"
             onClick={onViewAll}
-            className="text-xs font-mono text-lime-400 hover:text-lime-300 hover:bg-lime-400/10 h-8 px-2.5"
+            className="text-xs font-mono text-primary hover:text-primary/80 hover:bg-primary/10 h-8 px-2.5"
           >
             Filter {title} →
           </Button>
           <div className="hidden sm:flex items-center gap-1">
             <button
               onClick={() => scroll("left")}
-              className="h-7 w-7 rounded-full border border-zinc-800 bg-zinc-900 flex items-center justify-center text-zinc-300 hover:border-lime-400 hover:text-white transition-colors"
+              className="h-7 w-7 rounded-full border border-zinc-800 bg-zinc-900 flex items-center justify-center text-zinc-300 hover:border-primary hover:text-white transition-colors"
               aria-label="Scroll left"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={() => scroll("right")}
-              className="h-7 w-7 rounded-full border border-zinc-800 bg-zinc-900 flex items-center justify-center text-zinc-300 hover:border-lime-400 hover:text-white transition-colors"
+              className="h-7 w-7 rounded-full border border-zinc-800 bg-zinc-900 flex items-center justify-center text-zinc-300 hover:border-primary hover:text-white transition-colors"
               aria-label="Scroll right"
             >
               <ChevronRight className="h-4 w-4" />
@@ -84,7 +84,7 @@ function HorizontalProductTrack({
         {products.map((p) => (
           <div
             key={p.id}
-            className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px] rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-1 hover:border-lime-500/40 transition-all hover:shadow-[0_0_20px_rgba(163,230,53,0.12)]"
+            className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px] rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-1 hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
           >
             <ProductCard product={p} />
           </div>
@@ -164,22 +164,22 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
   }, [products, selectedCategory, searchQuery, sortBy]);
 
   return (
-    <div className="bg-[#090b09] text-zinc-100 min-h-screen selection:bg-lime-500 selection:text-black">
+    <div className="bg-[#090b09] text-zinc-100 min-h-screen selection:bg-primary selection:text-primary-foreground">
       {/* ── 1. SLEEK CYBER-DARK HERO ── */}
-      <section className="relative overflow-hidden pt-10 pb-16 sm:pt-16 sm:pb-24 border-b border-lime-500/10">
+      <section className="relative overflow-hidden pt-10 pb-16 sm:pt-16 sm:pb-24 border-b border-primary/20">
         {/* Ambient Neon Atmosphere */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-lime-500/10 rounded-full blur-[130px] pointer-events-none" />
-        <div className="absolute top-1/3 right-10 w-[280px] h-[280px] bg-emerald-500/10 rounded-full blur-[110px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-primary/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute top-1/3 right-10 w-[280px] h-[280px] bg-primary/10 rounded-full blur-[110px] pointer-events-none" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 text-center space-y-5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-lime-500/10 px-4 py-1.5 text-xs font-mono font-semibold text-lime-400 backdrop-blur-md shadow-[0_0_20px_rgba(163,230,53,0.12)]">
-            <Zap className="h-3.5 w-3.5 text-lime-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-mono font-semibold text-primary backdrop-blur-md shadow-[0_0_20px_rgba(var(--primary),0.15)]">
+            <Zap className="h-3.5 w-3.5 text-primary animate-pulse" />
             <span>{settings.brandName || "Official Cyber Store"}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight uppercase leading-[1.05]">
             <span className="text-white">Next-Gen </span>
-            <span className="bg-gradient-to-r from-lime-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent">
+            <span className="text-primary">
               {settings.heroTitle || "Curated Premium Collection"}
             </span>
           </h1>
@@ -195,7 +195,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
               onClick={() =>
                 document.getElementById("neo-catalog")?.scrollIntoView({ behavior: "smooth" })
               }
-              className="rounded-full px-8 py-5 font-bold bg-lime-400 text-black hover:bg-lime-300 shadow-[0_0_25px_rgba(163,230,53,0.35)] hover:shadow-[0_0_35px_rgba(163,230,53,0.5)] transition-all text-sm"
+              className="rounded-full px-8 py-5 font-bold bg-primary text-primary-foreground hover:brightness-110 shadow-lg hover:shadow-xl transition-all text-sm cursor-pointer"
             >
               Explore Products ({products.length})
               <ArrowRight className="h-4 w-4 ml-2" />
@@ -217,7 +217,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
           {/* Real Customer Trust HUD Cards */}
           <div className="pt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl mx-auto">
             <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-3.5 backdrop-blur-md">
-              <Clock className="h-4 w-4 text-lime-400 mx-auto mb-1" />
+              <Clock className="h-4 w-4 text-primary mx-auto mb-1" />
               <p className="font-mono text-sm sm:text-base font-bold text-white">Fast Dispatch</p>
               <p className="text-[11px] text-zinc-400">Prompt order processing</p>
             </div>
@@ -246,14 +246,14 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
           <div className="mx-auto max-w-7xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-lime-400">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-primary">
                   Collections
                 </span>
                 <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight">
                   Browse by Category
                 </h2>
               </div>
-              <Badge className="bg-lime-500/15 text-lime-400 border-lime-500/30 font-mono text-xs">
+              <Badge className="bg-primary/15 text-primary border-primary/30 font-mono text-xs">
                 {categoriesData.length} {categoriesData.length === 1 ? "Category" : "Categories"}
               </Badge>
             </div>
@@ -270,8 +270,8 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
                     }}
                     className={`group relative overflow-hidden rounded-2xl border transition-all cursor-pointer aspect-16/10 flex flex-col justify-end p-4 ${
                       isSelected
-                        ? "border-lime-400 bg-lime-400/15 shadow-[0_0_20px_rgba(163,230,53,0.25)] ring-1 ring-lime-400"
-                        : "border-zinc-800/80 bg-zinc-900/50 hover:border-lime-400/50 hover:bg-zinc-900/80"
+                        ? "border-primary bg-primary/15 shadow-lg ring-1 ring-primary"
+                        : "border-zinc-800/80 bg-zinc-900/50 hover:border-primary/50 hover:bg-zinc-900/80"
                     }`}
                   >
                     {/* Real product photo backdrop */}
@@ -290,7 +290,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
                     <div className="relative z-10 space-y-0.5">
                       <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400">
                         <span>0{idx + 1}</span>
-                        <span className={isSelected ? "text-lime-400 font-bold" : "text-zinc-300"}>
+                        <span className={isSelected ? "text-primary font-bold" : "text-zinc-300"}>
                           {cat.count} {cat.count === 1 ? "item" : "items"}
                         </span>
                       </div>
@@ -312,8 +312,8 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
           {/* Header, Search & Sort */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-mono text-lime-400 uppercase tracking-widest mb-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-lime-400 animate-ping" />
+              <div className="inline-flex items-center gap-1.5 text-xs font-mono text-primary uppercase tracking-widest mb-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
                 Live Catalog
               </div>
               <h2 className="text-2xl sm:text-3xl font-black uppercase text-white tracking-tight">
@@ -331,7 +331,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
                   placeholder="Search products by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-8 h-10 rounded-full text-xs bg-zinc-900/80 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 focus:border-lime-400"
+                  className="pl-9 pr-8 h-10 rounded-full text-xs bg-zinc-900/80 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 focus:border-primary"
                 />
                 {searchQuery && (
                   <button
@@ -346,7 +346,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
 
               {/* Sort Selector */}
               <div className="flex items-center gap-1.5 border border-zinc-800 rounded-full px-3 h-10 bg-zinc-900/80 text-xs font-mono text-zinc-300">
-                <ArrowUpDown className="h-3.5 w-3.5 text-lime-400 shrink-0" />
+                <ArrowUpDown className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span className="text-zinc-500 shrink-0">Sort:</span>
                 <select
                   value={sortBy}
@@ -367,14 +367,14 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
           {categoriesData.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
               <span className="text-xs font-mono text-zinc-400 shrink-0 flex items-center gap-1 mr-1">
-                <SlidersHorizontal className="h-3 w-3 text-lime-400" /> Filter:
+                <SlidersHorizontal className="h-3 w-3 text-primary" /> Filter:
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedCategory("all")}
                 className={`rounded-full px-4 py-1.5 text-xs font-mono transition-all shrink-0 ${
                   selectedCategory === "all"
-                    ? "bg-lime-400 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)]"
+                    ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/25"
                     : "border border-zinc-800 bg-zinc-900/70 text-zinc-300 hover:border-zinc-700"
                 }`}
               >
@@ -390,7 +390,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
                     onClick={() => setSelectedCategory(isSelected ? "all" : cat.name)}
                     className={`rounded-full px-4 py-1.5 text-xs font-mono capitalize transition-all shrink-0 ${
                       isSelected
-                        ? "bg-lime-400 text-black font-bold shadow-[0_0_15px_rgba(163,230,53,0.3)]"
+                        ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/25"
                         : "border border-zinc-800 bg-zinc-900/70 text-zinc-300 hover:border-zinc-700"
                     }`}
                   >
@@ -403,8 +403,8 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
 
           {/* Active Filter Pill Bar */}
           {selectedCategory !== "all" && (
-            <div className="flex items-center justify-between rounded-xl border border-lime-500/30 bg-lime-500/5 px-4 py-2.5 text-xs font-mono">
-              <span className="flex items-center gap-1.5 text-lime-400">
+            <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-mono">
+              <span className="flex items-center gap-1.5 text-primary">
                 <Tag className="h-3.5 w-3.5" />
                 Filtered by category: <strong className="capitalize text-white">{selectedCategory}</strong>
               </span>
@@ -412,7 +412,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedCategory("all")}
-                className="h-7 text-xs font-mono text-lime-400 hover:text-lime-300 hover:bg-transparent p-0 underline"
+                className="h-7 text-xs font-mono text-primary hover:text-primary/80 hover:bg-transparent p-0 underline"
               >
                 Show all products
               </Button>
@@ -425,7 +425,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
               {filteredProducts.map((p) => (
                 <div
                   key={p.id}
-                  className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-1 hover:border-lime-500/40 transition-all hover:shadow-[0_0_25px_rgba(163,230,53,0.12)] group"
+                  className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-1 hover:border-primary/40 transition-all hover:shadow-lg group"
                 >
                   <ProductCard product={p} />
                 </div>
@@ -481,7 +481,7 @@ export function NeoLuxeLayout({ products }: { products: Product[] }) {
       <footer className="py-10 px-4 sm:px-6 border-t border-zinc-900 bg-black/60">
         <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-zinc-500">
           <div className="flex items-center gap-2 text-zinc-300 font-bold">
-            <span className="h-2 w-2 rounded-full bg-lime-400" />
+            <span className="h-2 w-2 rounded-full bg-primary" />
             <span>{settings.brandName}</span>
             <span className="text-zinc-600">· Genuine Direct Sourcing & Secure Checkout</span>
           </div>

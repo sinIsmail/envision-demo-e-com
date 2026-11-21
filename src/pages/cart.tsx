@@ -1581,7 +1581,7 @@ function Cart() {
 
                   {user ? (
                     <Button
-                      className="w-full rounded-full h-13 font-black text-sm sm:text-base shadow-xl active:scale-95 transition-all bg-[#0A0A0A] text-[#FDE047] hover:bg-black hover:shadow-2xl dark:bg-[#FDE047] dark:text-[#0A0A0A] dark:hover:bg-[#facc15]"
+                      className="w-full rounded-full h-13 font-black text-sm sm:text-base shadow-xl active:scale-95 transition-all bg-primary text-primary-foreground hover:brightness-110 hover:shadow-2xl cursor-pointer"
                       size="lg"
                       onClick={() => checkout()}
                       disabled={
@@ -1601,7 +1601,7 @@ function Cart() {
                     <div className="grid grid-cols-2 gap-2.5">
                       <Button
                         size="lg"
-                        className="rounded-full h-12 font-bold active:scale-95 transition-all bg-[#0A0A0A] text-[#FDE047] hover:bg-black dark:bg-[#FDE047] dark:text-[#0A0A0A]"
+                        className="rounded-full h-12 font-bold active:scale-95 transition-all bg-primary text-primary-foreground hover:brightness-110 shadow-md"
                         onClick={goToLogin}
                       >
                         Log In
@@ -1610,7 +1610,7 @@ function Cart() {
                       <Button
                         size="lg"
                         variant="outline"
-                        className="rounded-full h-12 font-bold active:scale-95 transition-all border-2"
+                        className="rounded-full h-12 font-bold active:scale-95 transition-all border-2 border-primary/40 text-primary hover:bg-primary/10"
                         onClick={goToSignup}
                       >
                         Sign Up

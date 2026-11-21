@@ -364,7 +364,7 @@ export default function ProductDetail() {
               {/* Badges on image */}
               <div className="absolute top-4 left-4 flex flex-col gap-1.5">
                 {product.category?.trim() && (
-                  <span className="rounded-full bg-black text-[#FDE047] dark:bg-[#FDE047] dark:text-black border border-black/10 dark:border-white/10 backdrop-blur-md px-3.5 py-1 text-[11px] font-extrabold tracking-wider uppercase shadow-md">
+                  <span className="rounded-full bg-primary text-primary-foreground border border-primary/20 backdrop-blur-md px-3.5 py-1 text-[11px] font-extrabold tracking-wider uppercase shadow-md">
                     {product.category}
                   </span>
                 )}
@@ -405,7 +405,7 @@ export default function ProductDetail() {
                     onClick={() => setActiveImg(i)}
                     className={`shrink-0 h-16 w-16 sm:h-18 sm:w-18 overflow-hidden rounded-2xl border-2 p-1.5 bg-white dark:bg-zinc-900 transition-all ${
                       i === activeImg
-                        ? "border-[#FDE047] ring-2 ring-[#FDE047]/30 scale-102 shadow-xs"
+                        ? "border-primary ring-2 ring-primary/30 scale-102 shadow-xs"
                         : "border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-slate-400"
                     }`}
                   >
@@ -418,7 +418,7 @@ export default function ProductDetail() {
             {/* Store Trust Perks */}
             <div className="grid grid-cols-3 gap-2.5 pt-1">
               <div className="flex flex-col items-center text-center p-3.5 rounded-[22px] border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-xs">
-                <Truck className="h-4 w-4 text-[#eab308] mb-1" />
+                <Truck className="h-4 w-4 text-primary mb-1" />
                 <span className="text-[11px] font-bold text-slate-900 dark:text-white">Express Delivery</span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400">Free above ₹{settings.freeDeliveryAbove}</span>
               </div>
@@ -517,11 +517,11 @@ export default function ProductDetail() {
                 <div className="space-y-3 rounded-[32px] border border-slate-200/90 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl p-5 sm:p-6 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <Scale className="h-4 w-4 text-[#eab308]" />
+                      <Scale className="h-4 w-4 text-primary" />
                       Select Size / Quantity ({product.unitType})
                     </span>
                     {selectedVariant && (
-                      <span className="text-xs font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-white/10 px-3 py-1 rounded-full">
+                      <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
                         Selected: {selectedVariant.label}
                       </span>
                     )}
@@ -561,7 +561,7 @@ export default function ProductDetail() {
                               : variantSoldOut || isAdminDisabled
                               ? "opacity-50 cursor-not-allowed border-dashed border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-zinc-800/40"
                               : isSelected
-                              ? "border-black dark:border-[#FDE047] ring-2 ring-black/10 dark:ring-[#FDE047]/20 bg-slate-50 dark:bg-white/10 shadow-xs scale-102"
+                              ? "border-primary ring-2 ring-primary/20 bg-primary/10 dark:bg-primary/20 shadow-xs scale-102"
                               : "border-slate-200/90 dark:border-white/10 bg-white dark:bg-zinc-900 hover:border-slate-400 dark:hover:border-zinc-700"
                           }`}
                         >
@@ -629,7 +629,7 @@ export default function ProductDetail() {
                   </button>
                 </div>
 
-                {/* Tactile Pill Add to Cart CTA Button */}
+                {/* Tactile Pill Add to Cart CTA Button with Dynamic Primary Theme Color */}
                 <button
                   type="button"
                   disabled={outOfStock || adding}
@@ -637,7 +637,7 @@ export default function ProductDetail() {
                   className={`flex-1 h-13 rounded-full font-black text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all shadow-lg active:scale-95 ${
                     outOfStock
                       ? "bg-slate-100 dark:bg-zinc-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-zinc-700"
-                      : "bg-[#0A0A0A] text-[#FDE047] hover:bg-black hover:shadow-xl dark:bg-[#FDE047] dark:text-[#0A0A0A] dark:hover:bg-[#facc15] cursor-pointer"
+                      : "bg-primary text-primary-foreground hover:brightness-110 hover:shadow-xl cursor-pointer"
                   }`}
                 >
                   <ShoppingCart className="h-5 w-5 shrink-0" />

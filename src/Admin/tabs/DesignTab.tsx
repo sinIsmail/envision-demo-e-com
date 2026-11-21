@@ -198,11 +198,26 @@ export function DesignTab() {
               <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                 Asymmetric split hero, interactive product spotlight slider, dynamic category bento, trending reel, and VIP club.
               </p>
+              <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#2563eb] inline-block" />
+                  Electric Cobalt
+                </span>
+                <span className="text-[10px] uppercase font-mono">Signature</span>
+              </div>
             </div>
 
             {/* Option 2: Default Classic */}
             <div
-              onClick={() => setForm((prev) => ({ ...prev, storeLayout: "default" as StoreLayoutType }))}
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  storeLayout: "default" as StoreLayoutType,
+                  primaryColor: "#059669",
+                  colorPalettePreset: "nordic-emerald",
+                }));
+                applyPreviewTheme("#059669");
+              }}
               className={`relative flex flex-col p-4 rounded-xl border text-left cursor-pointer transition-all ${
                 form.storeLayout === "default"
                   ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
@@ -219,6 +234,13 @@ export function DesignTab() {
               <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                 Balanced marketplace design with horizontal category tracks, responsive catalog grid, and clean card styling.
               </p>
+              <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#059669] inline-block" />
+                  Nordic Emerald
+                </span>
+                <span className="text-[10px] uppercase font-mono">Signature</span>
+              </div>
             </div>
 
             {/* Option 3: Urban Chic */}
@@ -250,6 +272,13 @@ export function DesignTab() {
               <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                 High-fashion editorial aesthetic with dynamic category cards, real product thumbnails, live search, and guarantees strip.
               </p>
+              <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#000000] border border-border inline-block" />
+                  Monochrome
+                </span>
+                <span className="text-[10px] uppercase font-mono">Signature</span>
+              </div>
             </div>
 
             {/* Option 4: Neo Luxe */}
@@ -281,6 +310,13 @@ export function DesignTab() {
               <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                 Futuristic cyber-dark atmosphere with neon accents, dynamic matrix, live inventory status, and glassmorphic cards.
               </p>
+              <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#84cc16] inline-block" />
+                  Cyber Lime
+                </span>
+                <span className="text-[10px] uppercase font-mono">Signature</span>
+              </div>
             </div>
 
             {/* Option 5: Hyper-Saturated Fluid (Cyber Void) */}
@@ -312,6 +348,13 @@ export function DesignTab() {
               <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                 Cyber Yellow liquid wave hero, massive typography, deep onyx void, and frosted glass cards with pill micro-actions.
               </p>
+              <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#FDE047] border border-black/10 inline-block" />
+                  Cyber Yellow
+                </span>
+                <span className="text-[10px] uppercase font-mono">Signature</span>
+              </div>
             </div>
           </div>
         </CardContent>
