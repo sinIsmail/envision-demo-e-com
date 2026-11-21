@@ -244,7 +244,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-[#FDE047] selection:text-black">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-white selection:bg-[#FDE047] selection:text-black transition-colors duration-300">
       
       {/* ── 1. ASYMMETRIC LIQUID HERO (Cyber Yellow Shout Area) ────────────────── */}
       <section className="relative bg-[#FDE047] text-black overflow-hidden rounded-br-[80px] sm:rounded-br-[140px] rounded-bl-[28px] sm:rounded-bl-[48px] shadow-[0_20px_60px_rgba(253,224,71,0.25)] transition-all">
@@ -471,9 +471,9 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
         </div>
       </section>
 
-      {/* ── 2. THE DEEP ONYX VOID: TRENDING HORIZONTAL REEL ─────────────────────── */}
+      {/* ── 2. TRENDING HORIZONTAL REEL ─────────────────────── */}
       {products.length > 4 && (
-        <section className="py-12 border-b border-white/10">
+        <section className="py-12 border-b border-slate-200/80 dark:border-white/10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -481,24 +481,24 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                   <TrendingUp className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
-                    TRENDING IN THE VOID
+                  <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                    TRENDING RIGHT NOW
                   </h2>
-                  <p className="text-xs text-zinc-400 font-medium">Curated high-velocity staples moving fast</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Curated high-velocity staples moving fast</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => scrollTrending("left")}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/5 hover:bg-white/15 text-white transition-all cursor-pointer active:scale-90"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 dark:border-white/20 bg-white/80 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-white transition-all cursor-pointer active:scale-90 shadow-2xs"
                   aria-label="Scroll left"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => scrollTrending("right")}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/5 hover:bg-white/15 text-white transition-all cursor-pointer active:scale-90"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 dark:border-white/20 bg-white/80 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-white transition-all cursor-pointer active:scale-90 shadow-2xs"
                   aria-label="Scroll right"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -514,7 +514,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
               {products.slice(0, 8).map((product) => (
                 <div
                   key={product.id}
-                  className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px] rounded-[32px] border border-white/15 bg-white/[0.06] backdrop-blur-2xl p-2 hover:border-[#FDE047]/60 hover:shadow-[0_0_35px_rgba(253,224,71,0.18)] transition-all duration-300"
+                  className="shrink-0 snap-start w-[240px] sm:w-[260px] md:w-[280px] rounded-[32px] border border-slate-200/80 dark:border-white/15 bg-white/90 dark:bg-white/[0.06] backdrop-blur-2xl p-2 hover:border-[#FDE047] hover:shadow-[0_0_35px_rgba(253,224,71,0.25)] transition-all duration-300 shadow-sm"
                 >
                   <ProductCard product={product} />
                 </div>
@@ -526,12 +526,12 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
 
       {/* ── 3. CATALOG COMMAND BAR (Sort & Results) ─────────────────────────── */}
       <section id="store-catalog" className="mx-auto max-w-7xl px-4 pt-12 pb-6 sm:px-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 dark:border-white/10 pb-6">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
               PRODUCT CATALOG
             </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 font-medium">
               Showing {filteredProducts.length} of {products.length} products
               {selectedCategory !== "all" && ` in "${selectedCategory}"`}
             </p>
@@ -540,18 +540,18 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Search Input in Catalog */}
             <div className="relative min-w-[240px]">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-zinc-400" />
               <input
                 type="text"
                 placeholder="Filter catalog..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-9 pr-8 text-xs h-10 rounded-full border border-white/20 bg-white/5 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#FDE047]/40 focus:border-[#FDE047] transition-all"
+                className="w-full pl-9 pr-8 text-xs h-10 rounded-full border border-slate-200/90 dark:border-white/20 bg-white/90 dark:bg-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#FDE047]/50 focus:border-[#FDE047] transition-all shadow-2xs"
               />
               {searchQuery && (
                 <button
                   onClick={() => handleSearchChange("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white"
                 >
                   ✕
                 </button>
@@ -560,11 +560,11 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
 
             {/* Sort Selector */}
             <div className="flex items-center gap-1.5">
-              <SlidersHorizontal className="h-3.5 w-3.5 text-zinc-400 hidden sm:block" />
+              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400 dark:text-zinc-400 hidden sm:block" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="h-10 rounded-full border border-white/20 bg-[#171717] px-4 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-[#FDE047]/40 cursor-pointer"
+                className="h-10 rounded-full border border-slate-200/90 dark:border-white/20 bg-white dark:bg-[#171717] px-4 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#FDE047]/50 cursor-pointer shadow-2xs"
               >
                 <option value="featured">Sort: Featured</option>
                 <option value="price-asc">Price: Low to High</option>
@@ -579,9 +579,9 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
         {/* Active Filter Pills Bar */}
         {(selectedCategory !== "all" || searchQuery) && (
           <div className="flex flex-wrap items-center gap-2 pt-4">
-            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Active:</span>
+            <span className="text-xs text-slate-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Active:</span>
             {selectedCategory !== "all" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FDE047] text-black px-3.5 py-1 text-xs font-black">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FDE047] text-black px-3.5 py-1 text-xs font-black shadow-xs">
                 Category: {selectedCategory}
                 <button
                   onClick={() => setSelectedCategory("all")}
@@ -592,7 +592,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
               </span>
             )}
             {searchQuery && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white text-black px-3.5 py-1 text-xs font-black">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 text-white dark:bg-white dark:text-black px-3.5 py-1 text-xs font-black shadow-xs">
                 Query: &quot;{searchQuery}&quot;
                 <button
                   onClick={() => handleSearchChange("")}
@@ -607,7 +607,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
                 setSelectedCategory("all");
                 handleSearchChange("");
               }}
-              className="text-xs text-[#FDE047] font-bold hover:underline ml-2 cursor-pointer"
+              className="text-xs text-primary font-bold hover:underline ml-2 cursor-pointer"
             >
               Reset All
             </button>
@@ -618,10 +618,10 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
       {/* ── 4. FROSTED GLASS CATALOG GRID ───────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
         {filteredProducts.length === 0 ? (
-          <div className="rounded-[32px] border border-dashed border-white/20 bg-white/[0.03] p-12 text-center my-6">
-            <Package className="mx-auto h-12 w-12 text-zinc-500 mb-3 opacity-60" />
-            <h3 className="text-lg font-black text-white">NO PRODUCTS FOUND</h3>
-            <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto font-medium">
+          <div className="rounded-[32px] border border-dashed border-slate-200 dark:border-white/20 bg-slate-100/50 dark:bg-white/[0.03] p-12 text-center my-6">
+            <Package className="mx-auto h-12 w-12 text-slate-400 dark:text-zinc-500 mb-3 opacity-60" />
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">NO PRODUCTS FOUND</h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto font-medium">
               We couldn&apos;t find any items matching your active search or filter. Try clearing filters.
             </p>
             <button
@@ -639,7 +639,7 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="rounded-[32px] border border-white/10 bg-white/[0.04] backdrop-blur-2xl p-2 hover:border-[#FDE047]/60 hover:shadow-[0_0_30px_rgba(253,224,71,0.14)] transition-all duration-300"
+                className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-white/[0.04] backdrop-blur-2xl p-2 hover:border-[#FDE047] hover:shadow-[0_0_30px_rgba(253,224,71,0.2)] transition-all duration-300 shadow-sm"
               >
                 <ProductCard product={product} />
               </div>
@@ -648,53 +648,53 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
         )}
       </section>
 
-      {/* ── 5. THE VOID TRUST STRIP ─────────────────────────────────────────── */}
-      <section className="border-t border-white/10 bg-[#121212] py-14">
+      {/* ── 5. STORE TRUST STRIP ─────────────────────────────────────────── */}
+      <section className="border-t border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-[#121212] py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
                 <Truck className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-wider">Express Dispatch</h4>
-                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Express Dispatch</h4>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
                   Complimentary free shipping over {settings.currency}{settings.freeDeliveryAbove}.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-wider">Secure Protocol</h4>
-                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Secure Protocol</h4>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
                   256-bit encrypted checkout with live order tracking.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
                 <RotateCcw className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-wider">Fluid Returns</h4>
-                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Fluid Returns</h4>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
                   7-day hassle-free replacement guarantee.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+            <div className="flex items-start gap-4 p-5 rounded-[28px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl shadow-xs">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FDE047] text-black shadow-lg shadow-[#FDE047]/20">
                 <Zap className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-wider">Always Online</h4>
-                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Always Online</h4>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
                   Dedicated customer service on standby for any order questions.
                 </p>
               </div>
@@ -705,35 +705,35 @@ export function HyperFluidLayout({ products }: { products: Product[] }) {
 
       {/* ── 6. VIP FLUID NEWSLETTER ─────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <div className="relative overflow-hidden rounded-[40px] border border-white/15 bg-gradient-to-r from-[#171717] to-[#262626] p-8 sm:p-12 lg:flex lg:items-center lg:justify-between shadow-2xl">
+        <div className="relative overflow-hidden rounded-[40px] border border-slate-200/80 dark:border-white/15 bg-gradient-to-r from-amber-100/60 via-yellow-50/80 to-amber-200/50 dark:from-[#171717] dark:to-[#262626] p-8 sm:p-12 lg:flex lg:items-center lg:justify-between shadow-xl">
           <div className="max-w-xl space-y-3">
-            <span className="rounded-full bg-[#FDE047] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1">
+            <span className="rounded-full bg-[#FDE047] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1 shadow-xs">
               INSIDER ACCESS
             </span>
-            <h3 className="text-3xl font-black tracking-tight sm:text-4xl text-white">
+            <h3 className="text-3xl font-black tracking-tight sm:text-4xl text-slate-900 dark:text-white">
               UNLOCK 20% OFF YOUR NEXT DROP
             </h3>
-            <p className="text-sm text-zinc-300 leading-relaxed font-medium">
+            <p className="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed font-medium">
               Join the fluid circle for secret vault releases, member discounts, and instant priority dispatch.
             </p>
           </div>
 
           <div className="mt-6 lg:mt-0 lg:ml-8 shrink-0 w-full sm:w-auto">
             {subscribed ? (
-              <div className="flex items-center gap-2 rounded-full bg-emerald-500/10 px-5 py-3 text-sm text-emerald-400 border border-emerald-500/30 font-bold">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+              <div className="flex items-center gap-2 rounded-full bg-emerald-500/10 px-5 py-3 text-sm text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <span>You&apos;re in! Use code <strong>FLUID20</strong> at checkout.</span>
               </div>
             ) : (
               <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-2.5">
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-zinc-400" />
                   <input
                     type="email"
                     value={newsletterEmail}
                     onChange={(e) => setNewsletterEmail(e.target.value)}
                     placeholder="Enter your email..."
-                    className="w-full sm:w-72 h-12 pl-11 pr-4 rounded-full border border-white/20 bg-black/60 text-white placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-[#FDE047]"
+                    className="w-full sm:w-72 h-12 pl-11 pr-4 rounded-full border border-slate-300 dark:border-white/20 bg-white/90 dark:bg-black/60 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-[#FDE047] shadow-xs"
                     required
                   />
                 </div>
