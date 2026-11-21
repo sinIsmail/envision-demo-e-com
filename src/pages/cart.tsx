@@ -1269,7 +1269,7 @@ function Cart() {
         </div>
 
         {placedOrderSuccess ? (
-          <Card className="flex flex-col items-center justify-center py-12 px-6 text-center max-w-xl mx-auto shadow-lg border-primary/20 rounded-3xl bg-white dark:bg-slate-900">
+          <Card className="flex flex-col items-center justify-center py-12 px-6 text-center max-w-xl mx-auto shadow-2xl border border-slate-200/80 dark:border-white/10 rounded-[32px] bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl">
             <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 mb-4 shadow-sm">
               <CheckCircle2 className="h-10 w-10 text-emerald-600" />
             </div>
@@ -1290,13 +1290,13 @@ function Cart() {
             <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full max-w-sm">
               <Button
                 variant="outline"
-                className="flex-1 gap-2 border-primary/40 font-semibold text-primary hover:bg-primary/5 rounded-xl h-11"
+                className="flex-1 gap-2 border-primary/40 font-bold text-primary hover:bg-primary/5 rounded-full h-12 active:scale-95 transition-all"
                 onClick={() => downloadOrderBill(placedOrderSuccess, settings)}
               >
                 📄 Download PDF Bill
               </Button>
               <Button
-                className="flex-1 font-semibold rounded-xl h-11"
+                className="flex-1 font-bold rounded-full h-12 active:scale-95 transition-all"
                 onClick={() => {
                   setPlacedOrderSuccess(null);
                   navigate("/");
@@ -1327,7 +1327,7 @@ function Cart() {
             {/* LEFT COLUMN */}
             <div className="space-y-6">
               {/* CART ITEMS */}
-              <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+              <Card className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-xl overflow-hidden">
                 <CardHeader>
                   <CardTitle>Your Items</CardTitle>
                 </CardHeader>
@@ -1337,7 +1337,7 @@ function Cart() {
                     {cartData.map((item, index) => (
                       <React.Fragment key={item.productId}>
                         <div className="flex gap-4">
-                          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-2 flex items-center justify-center">
+                          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-zinc-800/60 p-2 flex items-center justify-center">
                             {item.image ? (
                               <img
                                 src={item.image}
@@ -1358,7 +1358,7 @@ function Cart() {
                                   {item.name}
                                 </h3>
                                 {item.variantLabel && (
-                                  <Badge variant="outline" className="mt-1 text-[11px] font-medium">
+                                  <Badge variant="outline" className="mt-1 text-[11px] font-medium rounded-full">
                                     {item.variantLabel}
                                   </Badge>
                                 )}
@@ -1375,11 +1375,11 @@ function Cart() {
 
                             <div className="mt-2 flex items-center justify-between">
                               <div className="flex flex-col gap-1">
-                                <div className="flex items-center rounded-full border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-0.5 shadow-2xs">
+                                <div className="flex items-center rounded-full border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-zinc-800/80 p-0.5 shadow-2xs">
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors"
+                                    className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-zinc-700 transition-colors active:scale-95"
                                     onClick={() => changeQty(item, -1)}
                                   >
                                     <Minus className="h-3.5 w-3.5" />
@@ -1392,7 +1392,7 @@ function Cart() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="h-7 w-7 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-zinc-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
                                     onClick={() => changeQty(item, 1)}
                                     disabled={item.maxStock !== undefined && item.quantity >= item.maxStock}
                                   >
@@ -1429,14 +1429,14 @@ function Cart() {
 
               {/* DELIVERY ADDRESS ONLY FOR LOGGED-IN USERS */}
               {user ? (
-                <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                <Card className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-xl">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MapPin className="h-5 w-5" />
                       Delivery Address
 
                       {!selectedAddress?.id && (
-                        <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                        <span className="ml-2 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
                           Required
                         </span>
                       )}
@@ -1468,7 +1468,7 @@ function Cart() {
             </div>
 
             {/* ORDER SUMMARY */}
-            <Card className="h-fit lg:sticky lg:top-20 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <Card className="h-fit lg:sticky lg:top-20 rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-xl overflow-hidden">
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
@@ -1525,7 +1525,7 @@ function Cart() {
                         <span className="font-semibold text-foreground">{userPhone}</span>
                       </div>
                     ) : (
-                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-800 dark:text-amber-300">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold flex items-center gap-1.5">
                             <Phone className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -1551,7 +1551,7 @@ function Cart() {
                   )}
 
                   {user && selectedAddress?.id ? (
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs">
                       <p className="mb-1 flex items-center gap-1 font-medium text-primary">
                         <MapPin className="h-3 w-3" />
                         Delivering to
@@ -1568,12 +1568,12 @@ function Cart() {
                       </p>
                     </div>
                   ) : user ? (
-                    <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                    <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
                       ⚠ Please select a delivery address to
                       continue
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs">
                       Login or create an account to place your
                       order.
                     </div>
@@ -1581,7 +1581,7 @@ function Cart() {
 
                   {user ? (
                     <Button
-                      className="w-full"
+                      className="w-full rounded-full h-13 font-black text-sm sm:text-base shadow-xl active:scale-95 transition-all bg-[#0A0A0A] text-[#FDE047] hover:bg-black hover:shadow-2xl dark:bg-[#FDE047] dark:text-[#0A0A0A] dark:hover:bg-[#facc15]"
                       size="lg"
                       onClick={() => checkout()}
                       disabled={
@@ -1598,9 +1598,10 @@ function Cart() {
                             : "Place Order"}
                     </Button>
                   ) : (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <Button
                         size="lg"
+                        className="rounded-full h-12 font-bold active:scale-95 transition-all bg-[#0A0A0A] text-[#FDE047] hover:bg-black dark:bg-[#FDE047] dark:text-[#0A0A0A]"
                         onClick={goToLogin}
                       >
                         Log In
@@ -1609,6 +1610,7 @@ function Cart() {
                       <Button
                         size="lg"
                         variant="outline"
+                        className="rounded-full h-12 font-bold active:scale-95 transition-all border-2"
                         onClick={goToSignup}
                       >
                         Sign Up

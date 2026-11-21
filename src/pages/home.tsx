@@ -7,6 +7,7 @@ import { DefaultClassicLayout } from "@/components/layouts/DefaultClassicLayout"
 import { UrbanChicLayout } from "@/components/layouts/UrbanChicLayout";
 import { NeoLuxeLayout } from "@/components/layouts/NeoLuxeLayout";
 import { AuraModernLayout } from "@/components/layouts/AuraModernLayout";
+import { HyperFluidLayout } from "@/components/layouts/HyperFluidLayout";
 import type { Product } from "@/types/product";
 
 function Home() {
@@ -49,7 +50,9 @@ function Home() {
   return (
     <>
       <Navbar />
-      {activeLayout === "urban-chic" ? (
+      {activeLayout === "hyper-fluid" ? (
+        <HyperFluidLayout products={products} />
+      ) : activeLayout === "urban-chic" ? (
         <UrbanChicLayout products={products} />
       ) : activeLayout === "neo-luxe" ? (
         <NeoLuxeLayout products={products} />

@@ -344,8 +344,8 @@ export default function ProductDetail() {
 
           {/* ── LEFT: Product Visual Showcase ── */}
           <div className="space-y-4">
-            {/* Main Padded Image Canvas */}
-            <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/90 aspect-square p-6 sm:p-10 flex items-center justify-center shadow-xs">
+            {/* Main Padded Image Canvas with Fluid Frosted Glass */}
+            <div className="relative overflow-hidden rounded-[32px] border border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl aspect-square p-6 sm:p-10 flex items-center justify-center shadow-lg">
               <img
                 src={images[activeImg]}
                 alt={product.name}
@@ -354,7 +354,7 @@ export default function ProductDetail() {
 
               {/* Out of Stock Overlay */}
               {outOfStock && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs">
                   <span className="rounded-full bg-rose-600 px-4 py-1.5 text-xs sm:text-sm font-bold text-white shadow-md">
                     Out of Stock
                   </span>
@@ -364,7 +364,7 @@ export default function ProductDetail() {
               {/* Badges on image */}
               <div className="absolute top-4 left-4 flex flex-col gap-1.5">
                 {product.category?.trim() && (
-                  <span className="rounded-full bg-primary/10 text-primary border border-primary/20 backdrop-blur-md px-3 py-1 text-[11px] font-bold tracking-wider uppercase shadow-2xs">
+                  <span className="rounded-full bg-black text-[#FDE047] dark:bg-[#FDE047] dark:text-black border border-black/10 dark:border-white/10 backdrop-blur-md px-3.5 py-1 text-[11px] font-extrabold tracking-wider uppercase shadow-md">
                     {product.category}
                   </span>
                 )}
@@ -376,7 +376,7 @@ export default function ProductDetail() {
                   <button
                     onClick={() => setActiveImg((i) => Math.max(0, i - 1))}
                     disabled={activeImg === 0}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 shadow-md hover:scale-105 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 dark:bg-zinc-800/90 text-slate-700 dark:text-slate-200 shadow-md hover:scale-105 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
                     aria-label="Previous photo"
                   >
                     <ChevronLeft className="h-5 w-5" />
@@ -384,7 +384,7 @@ export default function ProductDetail() {
                   <button
                     onClick={() => setActiveImg((i) => Math.min(images.length - 1, i + 1))}
                     disabled={activeImg === images.length - 1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 shadow-md hover:scale-105 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 dark:bg-zinc-800/90 text-slate-700 dark:text-slate-200 shadow-md hover:scale-105 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all"
                     aria-label="Next photo"
                   >
                     <ChevronRight className="h-5 w-5" />
@@ -403,10 +403,10 @@ export default function ProductDetail() {
                   <button
                     key={i}
                     onClick={() => setActiveImg(i)}
-                    className={`shrink-0 h-16 w-16 sm:h-18 sm:w-18 overflow-hidden rounded-2xl border-2 p-1.5 bg-white dark:bg-slate-900 transition-all ${
+                    className={`shrink-0 h-16 w-16 sm:h-18 sm:w-18 overflow-hidden rounded-2xl border-2 p-1.5 bg-white dark:bg-zinc-900 transition-all ${
                       i === activeImg
-                        ? "border-primary ring-2 ring-primary/20 scale-102 shadow-xs"
-                        : "border-slate-200 dark:border-slate-800 opacity-70 hover:opacity-100 hover:border-slate-400"
+                        ? "border-[#FDE047] ring-2 ring-[#FDE047]/30 scale-102 shadow-xs"
+                        : "border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-slate-400"
                     }`}
                   >
                     <img src={url} alt={`View ${i + 1}`} className="h-full w-full object-contain" />
@@ -417,18 +417,18 @@ export default function ProductDetail() {
 
             {/* Store Trust Perks */}
             <div className="grid grid-cols-3 gap-2.5 pt-1">
-              <div className="flex flex-col items-center text-center p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 shadow-2xs">
-                <Truck className="h-4 w-4 text-primary mb-1" />
+              <div className="flex flex-col items-center text-center p-3.5 rounded-[22px] border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-xs">
+                <Truck className="h-4 w-4 text-[#eab308] mb-1" />
                 <span className="text-[11px] font-bold text-slate-900 dark:text-white">Express Delivery</span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400">Free above ₹{settings.freeDeliveryAbove}</span>
               </div>
-              <div className="flex flex-col items-center text-center p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 shadow-2xs">
-                <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mb-1" />
+              <div className="flex flex-col items-center text-center p-3.5 rounded-[22px] border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-xs">
+                <ShieldCheck className="h-4 w-4 text-emerald-500 mb-1" />
                 <span className="text-[11px] font-bold text-slate-900 dark:text-white">Quality Checked</span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400">100% Genuine Item</span>
               </div>
-              <div className="flex flex-col items-center text-center p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 shadow-2xs">
-                <RotateCcw className="h-4 w-4 text-amber-600 dark:text-amber-400 mb-1" />
+              <div className="flex flex-col items-center text-center p-3.5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-xs">
+                <RotateCcw className="h-4 w-4 text-amber-500 mb-1" />
                 <span className="text-[11px] font-bold text-slate-900 dark:text-white">Easy Returns</span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400">Hassle-free replacement</span>
               </div>
@@ -469,10 +469,10 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Price Hero */}
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 p-4 sm:p-5 flex items-baseline justify-between flex-wrap gap-2">
+            {/* Price Hero Glass Card */}
+            <div className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl p-5 sm:p-6 flex items-baseline justify-between flex-wrap gap-2 shadow-sm">
               <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 block mb-1">
                   Special Price
                 </span>
                 <div className="flex items-baseline gap-2.5">
@@ -490,17 +490,17 @@ export default function ProductDetail() {
               {/* Stock Status Pill */}
               <div>
                 {outOfStock ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
                     <span className="h-2 w-2 rounded-full bg-rose-500" />
                     Out of Stock
                   </span>
                 ) : availableStock <= 5 ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
                     <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                     Only {availableStock} left in stock!
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     In Stock ({availableStock} units)
                   </span>
@@ -514,21 +514,21 @@ export default function ProductDetail() {
               const maxVariant = isMaxMode ? (getMaxVariant(product.unitVariants, true) || getMaxVariant(product.unitVariants)) : null;
 
               return (
-                <div className="space-y-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-2xs">
+                <div className="space-y-3 rounded-[32px] border border-slate-200/90 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl p-5 sm:p-6 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <Scale className="h-4 w-4 text-primary" />
+                      <Scale className="h-4 w-4 text-[#eab308]" />
                       Select Size / Quantity ({product.unitType})
                     </span>
                     {selectedVariant && (
-                      <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-white/10 px-3 py-1 rounded-full">
                         Selected: {selectedVariant.label}
                       </span>
                     )}
                   </div>
 
                   {isMaxMode && maxVariant && (
-                    <div className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-300">
+                    <div className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 dark:bg-amber-950/30 px-3.5 py-2 text-xs text-amber-900 dark:text-amber-300">
                       <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500" />
                       <span>
                         <strong>Max size only ({maxVariant.label})</strong> is enabled by store policy.
@@ -555,20 +555,20 @@ export default function ProductDetail() {
                             }
                           }}
                           disabled={isDisabled}
-                          className={`relative flex flex-col items-start rounded-xl border p-3 text-left transition-all ${
+                          className={`relative flex flex-col items-start rounded-2xl border p-3 text-left transition-all ${
                             isLowerTurnedOff
-                              ? "opacity-30 cursor-not-allowed border-dashed border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/30"
+                              ? "opacity-30 cursor-not-allowed border-dashed border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-zinc-800/30"
                               : variantSoldOut || isAdminDisabled
-                              ? "opacity-50 cursor-not-allowed border-dashed border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40"
+                              ? "opacity-50 cursor-not-allowed border-dashed border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-zinc-800/40"
                               : isSelected
-                              ? "border-primary ring-2 ring-primary/20 bg-primary/5 dark:bg-primary/15 shadow-xs"
-                              : "border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-400 dark:hover:border-slate-600"
+                              ? "border-black dark:border-[#FDE047] ring-2 ring-black/10 dark:ring-[#FDE047]/20 bg-slate-50 dark:bg-white/10 shadow-xs scale-102"
+                              : "border-slate-200/90 dark:border-white/10 bg-white dark:bg-zinc-900 hover:border-slate-400 dark:hover:border-zinc-700"
                           }`}
                         >
                           <div className="flex items-center justify-between w-full">
                             <span className="text-xs font-bold text-slate-900 dark:text-white">{v.label}</span>
                             {maxVariant?.label === v.label && (
-                              <span className="flex h-4 items-center justify-center rounded bg-amber-500 text-white text-[9px] font-bold px-1 shadow-2xs">
+                              <span className="flex h-4 items-center justify-center rounded-full bg-amber-500 text-white text-[9px] font-bold px-1.5 shadow-2xs">
                                 MAX
                               </span>
                             )}
@@ -604,13 +604,13 @@ export default function ProductDetail() {
             {/* Quantity Stepper & Add to Cart Button */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-3">
-                {/* Quantity Stepper */}
-                <div className="flex items-center rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-1 shadow-2xs">
+                {/* Quantity Stepper Pill */}
+                <div className="flex items-center rounded-full border border-slate-200/90 dark:border-white/15 bg-white dark:bg-zinc-900 p-1 shadow-2xs">
                   <button
                     type="button"
                     disabled={quantity <= 1 || outOfStock}
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors text-base font-bold"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors text-base font-bold active:scale-95"
                     aria-label="Decrease quantity"
                   >
                     −
@@ -622,22 +622,22 @@ export default function ProductDetail() {
                     type="button"
                     disabled={quantity >= availableStock || outOfStock}
                     onClick={() => setQuantity((q) => Math.min(availableStock, q + 1))}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors text-base font-bold"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none transition-colors text-base font-bold active:scale-95"
                     aria-label="Increase quantity"
                   >
                     +
                   </button>
                 </div>
 
-                {/* Prominent CTA Button */}
+                {/* Tactile Pill Add to Cart CTA Button */}
                 <button
                   type="button"
                   disabled={outOfStock || adding}
                   onClick={cartHandler}
-                  className={`flex-1 h-12 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all shadow-md active:scale-[0.99] ${
+                  className={`flex-1 h-13 rounded-full font-black text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all shadow-lg active:scale-95 ${
                     outOfStock
-                      ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-slate-700"
-                      : "bg-primary text-primary-foreground hover:brightness-110 cursor-pointer"
+                      ? "bg-slate-100 dark:bg-zinc-800 text-slate-400 cursor-not-allowed border border-slate-200 dark:border-zinc-700"
+                      : "bg-[#0A0A0A] text-[#FDE047] hover:bg-black hover:shadow-xl dark:bg-[#FDE047] dark:text-[#0A0A0A] dark:hover:bg-[#facc15] cursor-pointer"
                   }`}
                 >
                   <ShoppingCart className="h-5 w-5 shrink-0" />
@@ -660,7 +660,7 @@ export default function ProductDetail() {
 
             {/* About This Product / Description Card */}
             {product.description && (
-              <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 space-y-2 mt-2 shadow-2xs">
+              <div className="rounded-[32px] border border-slate-200/90 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl p-5 sm:p-6 space-y-2 mt-2 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   About this product
                 </h3>
@@ -697,7 +697,7 @@ export default function ProductDetail() {
           )}
 
           {/* Write a review */}
-          <div className="mb-8 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 space-y-4 shadow-2xs">
+          <div className="mb-8 rounded-[32px] border border-slate-200/90 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl p-5 sm:p-7 space-y-4 shadow-sm">
             <h3 className="font-bold text-base text-slate-900 dark:text-white">
               Write a Review
             </h3>
@@ -727,12 +727,13 @@ export default function ProductDetail() {
                     onChange={(e) => setMyComment(e.target.value)}
                     placeholder="Share your experience with this product..."
                     rows={3}
+                    className="rounded-2xl"
                   />
                 </div>
                 <Button
                   onClick={submitReview}
                   disabled={submitting || myRating === 0}
-                  className="gap-2 font-semibold"
+                  className="rounded-full h-11 px-6 gap-2 font-bold active:scale-95 shadow-md"
                 >
                   <Send className="h-4 w-4" />
                   {submitting ? "Submitting..." : "Submit Review"}
@@ -743,7 +744,7 @@ export default function ProductDetail() {
 
           {/* Reviews list */}
           {reviews.length === 0 ? (
-            <div className="text-center py-10 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
+            <div className="text-center py-10 rounded-[28px] border border-dashed border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-zinc-900/40">
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 No reviews yet. Be the first to share your experience!
               </p>
@@ -751,7 +752,7 @@ export default function ProductDetail() {
           ) : (
             <div className="space-y-3.5">
               {reviews.map((r) => (
-                <div key={r.id} className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 space-y-2 relative group shadow-2xs">
+                <div key={r.id} className="rounded-[28px] border border-slate-200/90 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-5 space-y-2 relative group shadow-xs">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="text-xs font-bold bg-primary text-primary-foreground">

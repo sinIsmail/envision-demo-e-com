@@ -1,4 +1,4 @@
-export type StoreLayoutType = "aura-modern" | "default" | "urban-chic" | "neo-luxe";
+export type StoreLayoutType = "aura-modern" | "default" | "urban-chic" | "neo-luxe" | "hyper-fluid";
 
 export interface Category {
   id: string;    // e.g. "cat_1700000000000"
@@ -15,6 +15,7 @@ export interface ColorPalette {
 }
 
 export const COLOR_PALETTES: ColorPalette[] = [
+  { id: "cyber-yellow", name: "Cyber Fluid Yellow", description: "Vibrant high-vis shout yellow & deep onyx void", primary: "#FDE047" },
   { id: "electric-cobalt", name: "Aura Cobalt", description: "Vibrant high-contrast electric cobalt & clean glass", primary: "#2563eb" },
   { id: "sunset-coral", name: "Sunset Coral", description: "Warm, energetic high-fashion coral & rose", primary: "#f43f5e" },
   { id: "urban-chic", name: "Shop.co Monochrome", description: "High-contrast editorial black & white styling", primary: "#000000" },

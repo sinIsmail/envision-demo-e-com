@@ -152,7 +152,9 @@ export function DesignTab() {
             </div>
             <Badge variant="outline" className="text-xs">
               Active:{" "}
-              {(form.storeLayout ?? "aura-modern") === "aura-modern"
+              {form.storeLayout === "hyper-fluid"
+                ? "Hyper-Saturated Fluid (High-Vis Void)"
+                : (form.storeLayout ?? "aura-modern") === "aura-modern"
                 ? "Aura Modern (Flagship)"
                 : form.storeLayout === "urban-chic"
                 ? "Urban Chic (Editorial)"
@@ -166,7 +168,7 @@ export function DesignTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
             {/* Option 1: Aura Modern */}
             <div
               onClick={() => {
@@ -278,6 +280,37 @@ export function DesignTab() {
               <h4 className="font-bold text-sm text-foreground">Neo Luxe</h4>
               <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                 Futuristic cyber-dark atmosphere with neon accents, dynamic matrix, live inventory status, and glassmorphic cards.
+              </p>
+            </div>
+
+            {/* Option 5: Hyper-Saturated Fluid (Cyber Void) */}
+            <div
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  storeLayout: "hyper-fluid",
+                  primaryColor: "#FDE047",
+                  colorPalettePreset: "cyber-yellow",
+                }));
+                applyPreviewTheme("#FDE047");
+              }}
+              className={`relative flex flex-col p-4 rounded-xl border text-left cursor-pointer transition-all ${
+                form.storeLayout === "hyper-fluid"
+                  ? "border-yellow-400 bg-yellow-400/10 ring-2 ring-yellow-400/30 shadow-sm"
+                  : "border-border/70 hover:border-border hover:bg-muted/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="secondary" className="text-[10px] bg-yellow-100 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-300 font-extrabold">
+                  ⚡ Hyper Fluid
+                </Badge>
+                {form.storeLayout === "hyper-fluid" && (
+                  <Badge className="text-[10px] bg-yellow-400 text-black font-black">Active</Badge>
+                )}
+              </div>
+              <h4 className="font-bold text-sm text-foreground">Hyper Fluid</h4>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                Cyber Yellow liquid wave hero, massive typography, deep onyx void, and frosted glass cards with pill micro-actions.
               </p>
             </div>
           </div>

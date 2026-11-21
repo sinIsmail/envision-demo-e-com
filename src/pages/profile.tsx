@@ -223,10 +223,10 @@ function Profile() {
 
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Account</h1>
-            <p className="mt-1 text-muted-foreground">Manage your contact information, profile, and order history.</p>
+            <h1 className="text-3xl font-extrabold tracking-tight">My Account</h1>
+            <p className="mt-1 text-muted-foreground text-sm">Manage your contact information, profile, and order history.</p>
           </div>
-          <Button onClick={openEditModal} className="gap-2 shrink-0 self-start sm:self-auto">
+          <Button onClick={openEditModal} className="rounded-full px-5 gap-2 shrink-0 self-start sm:self-auto font-bold active:scale-95 shadow-md">
             <Edit3 className="h-4 w-4" />
             Edit Profile
           </Button>
@@ -234,17 +234,17 @@ function Profile() {
 
         <div className="grid gap-6 lg:grid-cols-[290px_1fr]">
           {/* PROFILE CARD */}
-          <Card className="h-fit">
+          <Card className="h-fit rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-xl overflow-hidden">
             <CardContent className="flex flex-col items-center p-6 text-center">
-              <Avatar className="h-24 w-24 text-2xl border-2 border-primary/20">
+              <Avatar className="h-24 w-24 text-2xl border-2 border-primary/20 shadow-md">
                 <AvatarImage src={user?.photoURL ?? ""} alt="Profile" />
                 <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
                   {initials}
                 </AvatarFallback>
               </Avatar>
 
-              <h2 className="mt-4 text-xl font-semibold">{displayName}</h2>
-              <p className="mt-0.5 text-sm text-muted-foreground break-all">{user?.email}</p>
+              <h2 className="mt-4 text-xl font-bold">{displayName}</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground break-all">{user?.email}</p>
 
               {/* Phone display */}
               {profilePhone ? (
@@ -263,7 +263,7 @@ function Profile() {
                 </button>
               )}
 
-              <Badge className="mt-3" variant="secondary">
+              <Badge className="mt-3 rounded-full px-3 py-0.5 font-bold" variant="secondary">
                 Member
               </Badge>
 
@@ -271,8 +271,8 @@ function Profile() {
 
               <div className="flex w-full justify-around">
                 <div className="text-center">
-                  <p className="text-2xl font-bold">{orders.length}</p>
-                  <p className="text-xs text-muted-foreground">Orders</p>
+                  <p className="text-2xl font-black">{orders.length}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Orders</p>
                 </div>
               </div>
 
@@ -281,7 +281,7 @@ function Profile() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full gap-1.5 text-xs mb-2"
+                className="w-full rounded-full gap-1.5 text-xs mb-2 font-semibold active:scale-95"
                 onClick={openEditModal}
               >
                 <Edit3 className="h-3.5 w-3.5" />
@@ -291,7 +291,7 @@ function Profile() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 text-xs"
+                className="w-full rounded-full text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold active:scale-95"
                 onClick={handleSignout}
               >
                 <LogOut className="mr-2 h-4 w-4" /> Sign Out
@@ -302,7 +302,7 @@ function Profile() {
           {/* RIGHT */}
           <div className="space-y-6">
             {/* PERSONAL INFO */}
-            <Card>
+            <Card className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-xl overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
                   <CardTitle>Personal Information</CardTitle>
@@ -310,7 +310,7 @@ function Profile() {
                     Your name and contact phone number used for delivery and order notices
                   </p>
                 </div>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={openEditModal}>
+                <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-xs font-semibold active:scale-95" onClick={openEditModal}>
                   <Edit3 className="h-3.5 w-3.5" />
                   Edit Details
                 </Button>
@@ -410,7 +410,7 @@ function Profile() {
               </TabsList>
 
               <TabsContent value="orders" className="mt-4">
-                <Card>
+                <Card className="rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-xl overflow-hidden">
                   <CardHeader>
                     <CardTitle>Recent Orders</CardTitle>
                     {!ordersLoading && orders.length > 0 && (
@@ -431,7 +431,7 @@ function Profile() {
                         <p className="mt-1 text-sm text-muted-foreground">
                           Your orders will appear here after checkout.
                         </p>
-                        <Button className="mt-4" onClick={() => navigate("/")}>
+                        <Button className="mt-4 rounded-full font-bold px-6 active:scale-95 shadow-md" onClick={() => navigate("/")}>
                           Start Shopping
                         </Button>
                       </div>
@@ -443,17 +443,17 @@ function Profile() {
                             <React.Fragment key={order.id}>
                               {/* Clickable order row */}
                               <div
-                                className="group flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-all hover:bg-muted/50 hover:shadow-sm hover:border-primary/30"
+                                className="group flex items-center gap-3 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-zinc-800/40 p-4 cursor-pointer transition-all hover:bg-slate-100 dark:hover:bg-zinc-800/80 hover:shadow-md hover:border-black/20 dark:hover:border-white/20"
                                 onClick={() => setSelectedOrder(order)}
                               >
                                 {/* Icon */}
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted group-hover:bg-primary/10 transition-colors">
                                   <ShoppingBag className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                                 </div>
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-sm">
+                                  <p className="font-bold text-sm">
                                     #{order.id.slice(-8).toUpperCase()}
                                   </p>
                                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -484,7 +484,7 @@ function Profile() {
                                       e.stopPropagation()
                                       downloadOrderBill(order, settings)
                                     }}
-                                    className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                                    className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full border border-primary/30 text-primary hover:bg-primary/10 active:scale-95 transition-all"
                                     title="Download Bill (PDF)"
                                   >
                                     <FileText className="h-3.5 w-3.5" />
@@ -509,17 +509,17 @@ function Profile() {
 
       {/* Edit Profile Dialog */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-[32px] border border-slate-200/80 dark:border-white/10 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-2xl p-6 sm:p-8">
           <DialogHeader>
-            <DialogTitle>Edit Profile Details</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-bold">Edit Profile Details</DialogTitle>
+            <DialogDescription className="text-xs">
               Update your display name and contact phone number. Phone number is required for order confirmation and delivery.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSaveProfile} className="space-y-4 pt-2">
             {formError && (
-              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive font-medium flex items-center gap-2">
+              <div className="rounded-2xl bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive font-medium flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{formError}</span>
               </div>
@@ -534,6 +534,7 @@ function Profile() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 required
+                className="rounded-full px-4.5"
               />
             </div>
 
@@ -546,6 +547,7 @@ function Profile() {
                 value={formPhone}
                 onChange={(e) => setFormPhone(e.target.value)}
                 required
+                className="rounded-full px-4.5"
               />
               <p className="text-[11px] text-muted-foreground">
                 Must be at least 10 digits. Used for delivery coordination and order updates.
@@ -559,7 +561,7 @@ function Profile() {
                 type="email"
                 value={user?.email || ""}
                 disabled
-                className="bg-muted text-muted-foreground cursor-not-allowed"
+                className="bg-muted text-muted-foreground cursor-not-allowed rounded-full px-4.5"
               />
               <p className="text-[11px] text-muted-foreground">
                 Email is tied to your account login.
@@ -572,10 +574,11 @@ function Profile() {
                 variant="outline"
                 onClick={() => setEditModalOpen(false)}
                 disabled={saving}
+                className="rounded-full font-semibold"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving} className="gap-1.5">
+              <Button type="submit" disabled={saving} className="rounded-full font-bold gap-1.5 active:scale-95 shadow-md">
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>

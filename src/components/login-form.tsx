@@ -93,12 +93,15 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Login with your email and password</CardDescription>
+      <Card className="rounded-[32px] border border-slate-200/80 dark:border-white/15 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl shadow-2xl overflow-hidden">
+        <CardHeader className="text-center pt-8 pb-4">
+          <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-500 border border-amber-400/20">
+            Secure Account
+          </div>
+          <CardTitle className="text-2xl font-black tracking-tight">Welcome back</CardTitle>
+          <CardDescription className="text-xs">Login with your email and password</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-8">
           <form onSubmit={handleEmailLogin}>
             <FieldGroup>
               <Field>
@@ -110,6 +113,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   required
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="rounded-full px-4.5"
                 />
               </Field>
 
@@ -119,7 +123,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   <button
                     type="button"
                     onClick={openResetModal}
-                    className="ml-auto text-xs sm:text-sm text-white hover:text-white/80 font-medium underline underline-offset-4 transition-colors cursor-pointer"
+                    className="ml-auto text-xs sm:text-sm text-primary hover:text-primary/80 font-semibold underline underline-offset-4 transition-colors cursor-pointer"
                   >
                     Forgot password?
                   </button>
@@ -130,16 +134,17 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   required
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="rounded-full px-4.5"
                 />
               </Field>
 
               <Field>
-                <Button type="submit" className="w-full text-white font-bold" disabled={loading}>
+                <Button type="submit" className="w-full rounded-full h-12 text-sm font-bold active:scale-95 transition-all shadow-md" disabled={loading}>
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
-                <FieldDescription className="text-center text-zinc-300">
+                <FieldDescription className="text-center text-zinc-500 dark:text-zinc-400 mt-2">
                   Don&apos;t have an account?{" "}
-                  <Link to="/Signup" className="text-white hover:underline font-semibold underline-offset-4 ml-1">
+                  <Link to="/Signup" className="text-primary hover:underline font-bold underline-offset-4 ml-1">
                     Sign up
                   </Link>
                 </FieldDescription>

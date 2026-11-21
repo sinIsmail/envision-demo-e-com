@@ -74,60 +74,91 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   };
 
   return (
-    <Card {...props}>
-      <CardHeader>
-        <CardTitle>Create an account</CardTitle>
-        <CardDescription>Enter your information below to get started</CardDescription>
+    <Card className="rounded-[32px] border border-slate-200/80 dark:border-white/15 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl shadow-2xl overflow-hidden" {...props}>
+      <CardHeader className="text-center pt-8 pb-4">
+        <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-500 border border-amber-400/20">
+          Quick Register
+        </div>
+        <CardTitle className="text-2xl font-black tracking-tight">Create an account</CardTitle>
+        <CardDescription className="text-xs">Enter your details to enjoy streamlined ordering</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-6 pb-8">
         <form onSubmit={handleEmailSignup}>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="signup-name">Full Name</FieldLabel>
-              <Input id="signup-name" type="text" placeholder="John Doe" required
-                onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input
+                id="signup-name"
+                type="text"
+                placeholder="John Doe"
+                required
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="rounded-full px-4.5"
+              />
             </Field>
 
             <Field>
               <FieldLabel htmlFor="signup-email">Email</FieldLabel>
-              <Input id="signup-email" type="email" placeholder="john@example.com" required
-                onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input
+                id="signup-email"
+                type="email"
+                placeholder="john@example.com"
+                required
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="rounded-full px-4.5"
+              />
               <FieldDescription>We won&apos;t share your email with anyone.</FieldDescription>
             </Field>
 
             <Field>
               <FieldLabel htmlFor="signup-phone">Phone Number</FieldLabel>
-              <Input id="signup-phone" type="tel" placeholder="+1 234 567 8900" required
-                onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              <FieldDescription>Used for order updates and support.</FieldDescription>
+              <Input
+                id="signup-phone"
+                type="tel"
+                placeholder="+1 234 567 8900"
+                required
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className="rounded-full px-4.5"
+              />
+              <FieldDescription>Used for order updates and delivery support.</FieldDescription>
             </Field>
 
             <Field>
               <FieldLabel htmlFor="signup-password">Password</FieldLabel>
-              <Input id="signup-password" type="password" required
-                onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <Input
+                id="signup-password"
+                type="password"
+                required
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className="rounded-full px-4.5"
+              />
               <FieldDescription>At least 6 characters.</FieldDescription>
             </Field>
 
             <Field>
               <FieldLabel htmlFor="signup-confpassword">Confirm Password</FieldLabel>
-              <Input id="signup-confpassword" type="password" required
-                onChange={(e) => setForm({ ...form, confpassword: e.target.value })} />
+              <Input
+                id="signup-confpassword"
+                type="password"
+                required
+                onChange={(e) => setForm({ ...form, confpassword: e.target.value })}
+                className="rounded-full px-4.5"
+              />
               {passwordErr === "confpass"
-                ? <FieldDescription className="text-destructive">Passwords do not match</FieldDescription>
+                ? <FieldDescription className="text-destructive font-semibold">Passwords do not match</FieldDescription>
                 : form.confpassword
-                  ? <FieldDescription className="text-green-600">Passwords match ✓</FieldDescription>
+                  ? <FieldDescription className="text-emerald-600 dark:text-emerald-400 font-semibold">Passwords match ✓</FieldDescription>
                   : null}
             </Field>
 
             <FieldGroup>
               <Field>
-                <Button type="submit" className="w-full text-white font-bold" disabled={loading}>
+                <Button type="submit" className="w-full rounded-full h-12 text-sm font-bold active:scale-95 transition-all shadow-md" disabled={loading}>
                   {loading ? "Creating account..." : "Create Account"}
                 </Button>
-                <FieldDescription className="text-center text-zinc-300">
+                <FieldDescription className="text-center text-zinc-500 dark:text-zinc-400 mt-2">
                   Already have an account?{" "}
-                  <Link to="/Login" className="text-white hover:underline font-semibold underline-offset-4 ml-1">
+                  <Link to="/Login" className="text-primary hover:underline font-bold underline-offset-4 ml-1">
                     Sign in
                   </Link>
                 </FieldDescription>
