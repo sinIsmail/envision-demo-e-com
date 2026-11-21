@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "@/pages/ProductHomeList";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { Button } from "@/components/ui/button";
@@ -24,11 +25,18 @@ type SortOption = "featured" | "price-asc" | "price-desc" | "rating" | "in-stock
 
 export function UrbanChicLayout({ products }: { products: Product[] }) {
   const { settings } = useSiteSettings();
+  const [searchParams] = useSearchParams();
+  const urlQuery = searchParams.get("q") ?? "";
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(urlQuery);
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+
+  useEffect(() => {
+    setSearchQuery(urlQuery);
+  }, [urlQuery]);
 
   // Extract unique, non-empty categories strictly from products that have a category
   const categoriesData = useMemo(() => {

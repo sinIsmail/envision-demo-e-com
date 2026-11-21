@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ProductCard from "@/pages/ProductHomeList";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useAuth } from "@/context/AuthContext";
@@ -24,7 +24,6 @@ import {
   Mail,
   CheckCircle2,
   Package,
-  Layers,
   Star,
   ExternalLink,
   Zap,
@@ -45,12 +44,35 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
   const { settings } = useSiteSettings();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  const urlQuery = searchParams.get("q") ?? "";
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(urlQuery);
   const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+
+  // Sync with URL query parameter (?q=...)
+  useEffect(() => {
+    setSearchQuery(urlQuery);
+  }, [urlQuery]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (val.trim()) {
+          next.set("q", val);
+        } else {
+          next.delete("q");
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   const trendingRowRef = useRef<HTMLDivElement>(null);
 
@@ -488,76 +510,7 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
         </div>
       </section>
 
-      {/* ── 2. DYNAMIC CATEGORY BENTO (If products have categories) ─────────── */}
-      {categoryMetaList.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Explore by Category
-              </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Curated departments with live inventory.
-              </p>
-            </div>
-            {selectedCategory !== "all" && (
-              <button
-                onClick={() => setSelectedCategory("all")}
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                Clear Filter ({selectedCategory})
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
-            {categoryMetaList.map((meta) => {
-              const isSelected = selectedCategory.toLowerCase() === meta.name.toLowerCase();
-              return (
-                <div
-                  key={meta.name}
-                  onClick={() =>
-                    setSelectedCategory((prev) =>
-                      prev.toLowerCase() === meta.name.toLowerCase() ? "all" : meta.name
-                    )
-                  }
-                  className={`group relative overflow-hidden rounded-xl border p-3 sm:p-4 text-left cursor-pointer transition-all ${
-                    isSelected
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                      : "border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40"
-                  }`}
-                >
-                  <div className="relative aspect-4/3 overflow-hidden rounded-lg bg-muted mb-3">
-                    {meta.image ? (
-                      <img
-                        src={meta.image}
-                        alt={meta.name}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-                        <Layers className="h-6 w-6" />
-                      </div>
-                    )}
-                    <Badge className="absolute right-2 top-2 text-[10px] bg-background/90 text-foreground font-semibold">
-                      {meta.count} items
-                    </Badge>
-                  </div>
-
-                  <h3 className="font-bold text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                    {meta.name}
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {isSelected ? "Active filter · tap to reset" : "View collection →"}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ── 3. HORIZONTAL TRENDING STRIP ─────────────────────────────────────── */}
+      {/* ── 2. HORIZONTAL TRENDING STRIP ─────────────────────────────────────── */}
       {products.length > 4 && (
         <section className="border-y border-border/60 bg-muted/15 py-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -605,7 +558,7 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
       )}
 
       {/* ── 4. COMMAND FILTER & SEARCH BAR ──────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 pt-12 pb-6 sm:px-6">
+      <section id="store-catalog" className="mx-auto max-w-7xl px-4 pt-12 pb-6 sm:px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-6">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -625,12 +578,12 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9 pr-8 text-xs h-9 rounded-lg"
               />
               {searchQuery && (
                 <button
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
                 >
                   ✕
@@ -675,7 +628,7 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
               <Badge variant="secondary" className="gap-1 text-xs">
                 Query: "{searchQuery}"
                 <button
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                   className="ml-1 hover:text-destructive"
                 >
                   ✕
@@ -685,7 +638,7 @@ export function AuraModernLayout({ products }: { products: Product[] }) {
             <button
               onClick={() => {
                 setSelectedCategory("all");
-                setSearchQuery("");
+                handleSearchChange("");
               }}
               className="text-xs text-primary font-semibold hover:underline ml-2"
             >

@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "@/pages/ProductHomeList";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { Button } from "@/components/ui/button";
@@ -95,9 +96,16 @@ function HorizontalProductTrack({
 
 export function NeoLuxeLayout({ products }: { products: Product[] }) {
   const { settings } = useSiteSettings();
+  const [searchParams] = useSearchParams();
+  const urlQuery = searchParams.get("q") ?? "";
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(urlQuery);
   const [sortBy, setSortBy] = useState<SortOption>("featured");
+
+  useEffect(() => {
+    setSearchQuery(urlQuery);
+  }, [urlQuery]);
 
   // Extract unique categories strictly from products that have a non-empty category
   const categoriesData = useMemo(() => {
