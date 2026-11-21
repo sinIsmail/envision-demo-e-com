@@ -1,3 +1,5 @@
+import type { StoreLayoutType } from "@/types/siteSettings";
+
 /**
  * Dynamic theme utility to apply admin-selected brand colors
  * to CSS custom properties (--primary, --primary-foreground, --ring, etc.)
@@ -81,4 +83,11 @@ export function formatPrice(
   // Guaranteed to join with '.', NEVER ','
   const finalPrice = decStr ? `${intFormatted}.${decStr}` : intFormatted;
   return `${currency}${finalPrice}`;
+}
+
+export function applyStoreLayout(layout?: StoreLayoutType) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const targetLayout = layout || "aura-modern";
+  root.setAttribute("data-theme-layout", targetLayout);
 }

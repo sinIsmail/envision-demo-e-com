@@ -75,7 +75,7 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <div
       onClick={() => navigate(`/product/${product.id}`)}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:shadow-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 active:scale-[0.99]"
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs hover:shadow-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 active:scale-[0.99]"
     >
       {/* ── IMAGE CANVAS (Friendly clean white / light slate backdrop) ── */}
       <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-4 flex items-center justify-center">
@@ -128,7 +128,7 @@ function ProductCard({ product }: { product: Product }) {
         )}
 
         {/* Product Title */}
-        <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors min-h-[2.4rem]">
+        <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold leading-snug text-card-foreground group-hover:text-primary transition-colors min-h-[2.4rem]">
           {product.name}
         </h3>
 
@@ -137,7 +137,7 @@ function ProductCard({ product }: { product: Product }) {
           {reviewCount > 0 ? (
             <>
               <StarRating value={avgRating} size="sm" />
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] font-medium text-muted-foreground">
                 ({reviewCount})
               </span>
             </>
@@ -154,7 +154,7 @@ function ProductCard({ product }: { product: Product }) {
           {product.hasVariants && product.unitVariants && product.unitVariants.length > 0 ? (
             settings.showMaxVariantOnly ? (
               <>
-                <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                <span className="text-base sm:text-lg font-bold text-card-foreground">
                   {formatPrice(
                     getMaxVariant(product.unitVariants, true)?.price ??
                     getMaxVariant(product.unitVariants)?.price ??
@@ -179,17 +179,17 @@ function ProductCard({ product }: { product: Product }) {
               const minPrice = Math.min(...pool.map((v) => v.price));
               return (
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                  <span className="text-[11px] font-medium text-muted-foreground">
                     From
                   </span>
-                  <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                  <span className="text-base sm:text-lg font-bold text-card-foreground">
                     {formatPrice(minPrice, settings.currency, settings.currencyLocale)}
                   </span>
                 </div>
               );
             })()
           ) : (
-            <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            <span className="text-base sm:text-lg font-bold text-card-foreground">
               {formatPrice(product.price, settings.currency, settings.currencyLocale)}
             </span>
           )}

@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 
 export function DesignTab() {
-  const { settings, saveSettings, applyPreviewTheme } = useSiteSettings();
+  const { settings, saveSettings, applyPreviewTheme, applyPreviewLayout } = useSiteSettings();
   const { setTheme } = useTheme();
 
   const [form, setForm] = useState(settings);
@@ -152,7 +152,9 @@ export function DesignTab() {
             </div>
             <Badge variant="outline" className="text-xs">
               Active:{" "}
-              {form.storeLayout === "hyper-fluid"
+              {form.storeLayout === "playful-geometric"
+                ? "Playful Geometric (Memphis Pop)"
+                : form.storeLayout === "hyper-fluid"
                 ? "Hyper-Saturated Fluid (High-Vis Void)"
                 : (form.storeLayout ?? "aura-modern") === "aura-modern"
                 ? "Aura Modern (Flagship)"
@@ -168,8 +170,49 @@ export function DesignTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-            {/* Option 1: Aura Modern */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Option 1: Playful Geometric (NEW MEMPHIS POP) */}
+            <div
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  storeLayout: "playful-geometric",
+                  themeMode: "light",
+                  primaryColor: "#8B5CF6",
+                  colorPalettePreset: "playful-violet",
+                }));
+                applyPreviewLayout("playful-geometric");
+                applyPreviewTheme("#8B5CF6");
+                setTheme("light");
+              }}
+              className={`relative flex flex-col p-4 rounded-2xl border text-left cursor-pointer transition-all ${
+                form.storeLayout === "playful-geometric"
+                  ? "border-[#1E293B] bg-[#FFFDF5] ring-2 ring-[#8B5CF6] shadow-pop"
+                  : "border-border/70 hover:border-border hover:bg-muted/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Badge className="text-[10px] bg-[#FBBF24] text-[#1E293B] border border-[#1E293B] font-black">
+                  ★ Memphis Pop
+                </Badge>
+                {form.storeLayout === "playful-geometric" && (
+                  <Badge className="text-[10px] bg-[#8B5CF6] text-white">Active</Badge>
+                )}
+              </div>
+              <h4 className="font-extrabold text-sm text-foreground">Playful Geometric</h4>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                Warm paper cream canvas (#FFFDF5), 2px neo-brutalist borders, hard pop shadows, candy buttons, and sticker cards.
+              </p>
+              <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#8B5CF6] inline-block" />
+                  Playful Violet
+                </span>
+                <span className="text-[10px] uppercase font-mono font-bold text-[#8B5CF6]">Signature</span>
+              </div>
+            </div>
+
+            {/* Option 2: Aura Modern */}
             <div
               onClick={() => {
                 setForm((prev) => ({
@@ -178,6 +221,7 @@ export function DesignTab() {
                   primaryColor: "#2563eb",
                   colorPalettePreset: "electric-cobalt",
                 }));
+                applyPreviewLayout("aura-modern");
                 applyPreviewTheme("#2563eb");
               }}
               className={`relative flex flex-col p-4 rounded-xl border text-left cursor-pointer transition-all ${
@@ -207,7 +251,7 @@ export function DesignTab() {
               </div>
             </div>
 
-            {/* Option 2: Default Classic */}
+            {/* Option 3: Default Classic */}
             <div
               onClick={() => {
                 setForm((prev) => ({
@@ -216,6 +260,7 @@ export function DesignTab() {
                   primaryColor: "#059669",
                   colorPalettePreset: "nordic-emerald",
                 }));
+                applyPreviewLayout("default");
                 applyPreviewTheme("#059669");
               }}
               className={`relative flex flex-col p-4 rounded-xl border text-left cursor-pointer transition-all ${
@@ -243,7 +288,7 @@ export function DesignTab() {
               </div>
             </div>
 
-            {/* Option 3: Urban Chic */}
+            {/* Option 4: Urban Chic */}
             <div
               onClick={() => {
                 setForm((prev) => ({
@@ -252,6 +297,7 @@ export function DesignTab() {
                   primaryColor: "#000000",
                   colorPalettePreset: "urban-chic",
                 }));
+                applyPreviewLayout("urban-chic");
                 applyPreviewTheme("#000000");
               }}
               className={`relative flex flex-col p-4 rounded-xl border text-left cursor-pointer transition-all ${
@@ -281,7 +327,7 @@ export function DesignTab() {
               </div>
             </div>
 
-            {/* Option 4: Neo Luxe */}
+            {/* Option 5: Neo Luxe */}
             <div
               onClick={() => {
                 setForm((prev) => ({
@@ -290,6 +336,7 @@ export function DesignTab() {
                   primaryColor: "#84cc16",
                   colorPalettePreset: "cyber-lime",
                 }));
+                applyPreviewLayout("neo-luxe");
                 applyPreviewTheme("#84cc16");
               }}
               className={`relative flex flex-col p-4 rounded-xl border text-left cursor-pointer transition-all ${
@@ -319,7 +366,7 @@ export function DesignTab() {
               </div>
             </div>
 
-            {/* Option 5: Hyper-Saturated Fluid (Cyber Void) */}
+            {/* Option 6: Hyper-Saturated Fluid (Cyber Void) */}
             <div
               onClick={() => {
                 setForm((prev) => ({
@@ -328,6 +375,7 @@ export function DesignTab() {
                   primaryColor: "#FDE047",
                   colorPalettePreset: "cyber-yellow",
                 }));
+                applyPreviewLayout("hyper-fluid");
                 applyPreviewTheme("#FDE047");
               }}
               className={`relative flex flex-col p-4 rounded-xl border text-left cursor-pointer transition-all ${
@@ -519,6 +567,12 @@ export function DesignTab() {
               <Badge className="pointer-events-none">
                 Badge Highlight
               </Badge>
+              <button
+                type="button"
+                className="btn-candy text-xs font-black uppercase px-4 py-1.5 rounded-full bg-[#8B5CF6] text-white border-2 border-[#1E293B] pointer-events-none"
+              >
+                ★ Candy Pop
+              </button>
             </div>
           </div>
         </CardContent>

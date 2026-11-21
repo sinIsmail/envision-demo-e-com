@@ -1,14 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/fb";
-import { type SiteSettings, DEFAULT_SETTINGS } from "@/types/siteSettings";
-import { applyThemeColor } from "@/lib/themeUtils";
+import { type SiteSettings, type StoreLayoutType, DEFAULT_SETTINGS } from "@/types/siteSettings";
+import { applyThemeColor, applyStoreLayout } from "@/lib/themeUtils";
 
 interface SiteSettingsContextType {
   settings: SiteSettings;
   loading: boolean;
   saveSettings: (updates: Partial<SiteSettings>) => Promise<void>;
   applyPreviewTheme: (colorHex: string) => void;
+  applyPreviewLayout: (layout: StoreLayoutType) => void;
 }
 
 const SiteSettingsContext = createContext<SiteSettingsContextType>({
@@ -16,6 +17,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextType>({
   loading: true,
   saveSettings: async () => {},
   applyPreviewTheme: () => {},
+  applyPreviewLayout: () => {},
 });
 
 const SETTINGS_DOC = doc(db, "siteSettings", "config");
@@ -30,6 +32,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       if (snap.exists()) {
         const merged = { ...DEFAULT_SETTINGS, ...snap.data() } as SiteSettings;
         setSettings(merged);
+        applyStoreLayout(merged.storeLayout);
         if (merged.primaryColor) {
           applyThemeColor(merged.primaryColor);
         }
@@ -60,6 +63,9 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
 
   const saveSettings = async (updates: Partial<SiteSettings>) => {
     await setDoc(SETTINGS_DOC, { ...settings, ...updates }, { merge: true });
+    if (updates.storeLayout) {
+      applyStoreLayout(updates.storeLayout);
+    }
     if (updates.primaryColor) {
       applyThemeColor(updates.primaryColor);
     }
@@ -84,8 +90,12 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
     applyThemeColor(colorHex);
   };
 
+  const applyPreviewLayout = (layout: StoreLayoutType) => {
+    applyStoreLayout(layout);
+  };
+
   return (
-    <SiteSettingsContext.Provider value={{ settings, loading, saveSettings, applyPreviewTheme }}>
+    <SiteSettingsContext.Provider value={{ settings, loading, saveSettings, applyPreviewTheme, applyPreviewLayout }}>
       {children}
     </SiteSettingsContext.Provider>
   );

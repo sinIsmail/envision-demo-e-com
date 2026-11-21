@@ -8,6 +8,7 @@ import { UrbanChicLayout } from "@/components/layouts/UrbanChicLayout";
 import { NeoLuxeLayout } from "@/components/layouts/NeoLuxeLayout";
 import { AuraModernLayout } from "@/components/layouts/AuraModernLayout";
 import { HyperFluidLayout } from "@/components/layouts/HyperFluidLayout";
+import { PlayfulGeometricLayout } from "@/components/layouts/PlayfulGeometricLayout";
 import type { Product } from "@/types/product";
 
 function Home() {
@@ -50,7 +51,9 @@ function Home() {
   return (
     <>
       <Navbar />
-      {activeLayout === "hyper-fluid" ? (
+      {activeLayout === "playful-geometric" ? (
+        <PlayfulGeometricLayout products={products} />
+      ) : activeLayout === "hyper-fluid" ? (
         <HyperFluidLayout products={products} />
       ) : activeLayout === "urban-chic" ? (
         <UrbanChicLayout products={products} />

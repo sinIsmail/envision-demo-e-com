@@ -326,7 +326,7 @@ export default function Navbar() {
               className={`relative flex items-center gap-2 rounded-full border px-4 py-1.5 h-9 text-sm font-semibold transition-all shadow-2xs ${
                 isActive("/Cart")
                   ? "bg-primary/10 text-primary border-primary ring-2 ring-primary/20"
-                  : "border-slate-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 hover:border-primary/50"
+                  : "border-border bg-card/90 hover:bg-muted text-foreground hover:border-primary/50"
               }`}
             >
               <ShoppingCart className="h-4 w-4" />
@@ -345,7 +345,7 @@ export default function Navbar() {
                   className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 h-9 text-sm font-semibold transition-all shadow-2xs ${
                     isActive("/Profile")
                       ? "bg-primary/10 text-primary border-primary ring-2 ring-primary/20"
-                      : "border-slate-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 hover:border-primary/50"
+                      : "border-border bg-card/90 hover:bg-muted text-foreground hover:border-primary/50"
                   }`}
                 >
                   <User className="h-4 w-4" />
@@ -363,7 +363,7 @@ export default function Navbar() {
               <>
                 <button
                   onClick={() => go("/Login")}
-                  className="flex items-center gap-1.5 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 px-4 py-1.5 h-9 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-2xs"
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-card/90 text-foreground px-4 py-1.5 h-9 text-sm font-semibold hover:bg-muted transition-all shadow-2xs"
                 >
                   <LogIn className="h-4 w-4" />
                   <span>Log In</span>
@@ -380,7 +380,7 @@ export default function Navbar() {
             {/* Theme Toggle (Dark / Light) */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-2xs"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/90 text-foreground hover:bg-muted transition-all shadow-2xs"
               title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
               aria-label="Toggle Theme"
             >
@@ -396,7 +396,7 @@ export default function Navbar() {
           <div className="flex items-center gap-2 md:hidden">
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 text-foreground hover:bg-muted transition-colors shadow-2xs"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/90 text-foreground hover:bg-muted transition-colors shadow-2xs"
               title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
               aria-label="Toggle Theme"
             >
@@ -408,7 +408,7 @@ export default function Navbar() {
             </button>
             <button
               onClick={() => go("/Cart")}
-              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 hover:bg-muted transition-colors shadow-2xs"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/90 text-foreground hover:bg-muted transition-colors shadow-2xs"
               aria-label="Cart"
             >
               <ShoppingCart className="h-4 w-4" />

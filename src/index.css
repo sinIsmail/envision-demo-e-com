@@ -128,3 +128,96 @@
     @apply font-sans;
     }
 }
+
+/* ─── Global Design Layout Orchestrator Tokens ───────────────────── */
+
+/* 1. Playful Geometric (Memphis Pop) */
+[data-theme-layout="playful-geometric"] {
+  --background: #FFFDF5 !important;
+  --foreground: #1E293B !important;
+  --card: #FFFFFF !important;
+  --card-foreground: #1E293B !important;
+  --popover: #FFFFFF !important;
+  --popover-foreground: #1E293B !important;
+  --muted: #F1F5F9 !important;
+  --muted-foreground: #64748B !important;
+  --border: #1E293B !important;
+  --input: #FFFFFF !important;
+  --ring: #8B5CF6 !important;
+  --radius: 1rem !important;
+}
+
+/* 2. Neo Luxe (Cyber Dark) */
+[data-theme-layout="neo-luxe"] {
+  --background: #090B09 !important;
+  --foreground: #FAFAFA !important;
+  --card: #121412 !important;
+  --card-foreground: #F4F4F5 !important;
+  --border: #27272A !important;
+  --input: #1C1F1C !important;
+}
+
+/* 3. Urban Chic (Editorial Monochrome) */
+[data-theme-layout="urban-chic"] {
+  --radius: 0.75rem !important;
+}
+
+/* ─── Tactile Memphis & Neo-Brutalist Utilities ────────────────────── */
+.shadow-pop {
+  box-shadow: 4px 4px 0px 0px #1E293B;
+}
+
+.shadow-pop-sm {
+  box-shadow: 2px 2px 0px 0px #1E293B;
+}
+
+.shadow-pop-lg {
+  box-shadow: 6px 6px 0px 0px #1E293B;
+}
+
+.shadow-pop-xl {
+  box-shadow: 8px 8px 0px 0px #1E293B;
+}
+
+.shadow-pop-pink {
+  box-shadow: 6px 6px 0px 0px #F472B6;
+}
+
+.shadow-pop-yellow {
+  box-shadow: 6px 6px 0px 0px #FBBF24;
+}
+
+.shadow-pop-violet {
+  box-shadow: 6px 6px 0px 0px #8B5CF6;
+}
+
+.shadow-pop-mint {
+  box-shadow: 6px 6px 0px 0px #34D399;
+}
+
+.btn-candy {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 4px 4px 0px 0px #1E293B;
+}
+.btn-candy:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #1E293B;
+}
+.btn-candy:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #1E293B;
+}
+
+.card-sticker {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 6px 6px 0px 0px #1E293B;
+}
+.card-sticker:hover {
+  transform: rotate(-1deg) scale(1.02);
+  box-shadow: 8px 8px 0px 0px #1E293B;
+}
+
+.bg-dot-matrix {
+  background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
